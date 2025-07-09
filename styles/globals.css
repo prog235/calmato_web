@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
+/*
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #000000;
 }
 
 @theme inline {
@@ -12,7 +13,7 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefer-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
@@ -23,4 +24,25 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}*/
+
+
+/* 전역 색상 변수: 기본 라이트 모드 */
+:root {
+  --background: #ffffff;    /* 배경색: 흰색 */
+  --foreground: #000000;    /* 텍스트 색: 검정 */
+}
+
+/* 다크 모드 적용: next-themes가 붙여주는 html.dark 기반 */
+html.dark {
+  --background: #0a0a0a;    /* 배경색: 거의 검정 */
+  --foreground: #ededed;    /* 텍스트 색: 밝은 회색 */
+}
+
+/* 전역 적용 */
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  transition: background 0.3s ease, color 0.3s ease; /* 부드러운 전환 */
 }
