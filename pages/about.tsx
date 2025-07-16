@@ -2,7 +2,7 @@ import Image from "next/image";
 
 export default function About() {
   return (
-    <main className="flex flex-col items-center min-h-screen px-4 text-center">
+    <main className="flex flex-col items-center min-h-screen px-4 text-left">
 
       {/* 바다 이미지 */}
       <div className="max-w-2xl w-full aspect-video relative">
@@ -15,7 +15,7 @@ export default function About() {
       </div>
 
       {/* 소개 텍스트 */}
-      <div className="max-w-xl space-y-4 text-sm sm:text-base mt-10">
+      <div className="max-w-2xl space-y-4 text-sm sm:text-base mt-10">
         <p>
           <span className="font-bold">Calmato</span>는 이탈리아어로, 
           악보 위에 “조용히, 고요하게 연주하라”는 뜻의 음악 기호입니다.

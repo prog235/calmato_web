@@ -21,7 +21,7 @@ export default function Navbar() {
       </Link>
 
       {/* 메뉴 */}
-      <nav className="grid grid-cols-5 w-full max-w-xl text-center my-6">
+      <nav className="grid grid-cols-5 w-full max-w-2xl text-[16px] text-center mt-6 mb-4">
         {links.map((link) => (
           <motion.div
             key={link.href}
@@ -30,8 +30,8 @@ export default function Navbar() {
           >
             <Link
               href={link.href}
-              className={`transition ${
-                router.pathname === link.href ? "font-semibold" : "hover:text-gray-400"
+              className={
+                `transition ${router.pathname === link.href ? "font-semibold" : "hover:text-gray-400"
               }`}
             >
               {link.label}
