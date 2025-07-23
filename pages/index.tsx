@@ -37,7 +37,7 @@ export default function Home() {
       </motion.div>
 
 
-      {/* 하단 Calmato 소개 + SNS */}
+      {/* 하단 Calmato 소개 */}
       <motion.div
         className="absolute bottom-8 w-full flex flex-col items-center space-y-2 text-gray-200 text-center text-sm"
         initial={{ opacity: 0, y: 20 }}

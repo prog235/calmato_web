@@ -26,8 +26,8 @@ export default function Project() {
               key={cat}
               onClick={() => setFilter(cat)}
               className={`capitalize ${
-                filter === cat ? "font-bold border-b" : "text-gray-400"
-              } hover:text-white transition`}
+                filter === cat ? "font-bold border-b" : "subtext"
+              } hover:opacity-70 transition`}
             >
               {cat}
             </button>
@@ -76,24 +76,26 @@ export default function Project() {
       {/* ASMR 전용 사이드바 + 리스트 */}
       {isAsmr ? (
         <div className="flex">
-          {/* 📒 Index-tab-style 사이드바 */}
-          <div className="w-1/4 pr-6 space-y-2">
+          {/* Index-tab-style 사이드바 */}
+          <div className="w-1/5 space-y-2">
             {playlistsData.map((pl, idx) => {
               const isActive = pl.slug === selectedPlaylist.slug;
               return (
                 <div
                   key={idx}
                   onClick={() => setSelectedPlaylist(pl)}
-                  className={`relative h-16 w-full cursor-pointer rounded-l-lg overflow-hidden transition transform group
+                  className={`relative h-14 w-full cursor-pointer card-shadow rounded-l-lg 
+                    overflow-hidden transition transform group 
                     ${isActive
                       ? "bg-[var(--hover-background)] shadow-md"
-                      : "bg-white/5 opacity-80 hover:opacity-100"}`}
+                      : "bg-[var(--foreground)]/50 opacity-90 hover:opacity-100"}`}
                 >
                   <Image
                     src={pl.thumbnail}
                     alt={pl.title}
                     fill
-                    className="object-cover brightness-75 group-hover:brightness-100 transition"
+                    className={`object-cover transition
+                    ${isActive ? "brightness-100" : "brightness-60 group-hover:brightness-90"}`}
                   />
                   <div className="absolute inset-0 flex items-center px-4 font-semibold text-sm text-white">
                     {pl.title.replace("Playlist", "").trim()}
@@ -102,39 +104,46 @@ export default function Project() {
               );
             })}
           </div>
+          
+          <div className="relative w-full border border-[var(--foreground)]/10 rounded-r-md p-0.5 shadow-xl">
+            <div className="rounded-sm border border-[var(--foreground)]/5">
+              <div className="absolute inset-0 z-0 bg-[url('/beige-paper.png')] bg-repeat bg-[length:300px_300px] opacity-15 pointer-events-none" />
+          
+              {/* 선택된 playlist의 트랙만 보여주는 리스트 */}
+              <div className="relative flex-col py-5 px-6 space-y-4 border-0 z-10 rounded-l-lg">
 
-          {/* 선택된 playlist의 트랙만 보여주는 리스트 */}
-          <div className="flex-1 space-y-4">
-            {selectedPlaylist.tracks.map((track, idx) => (
-              <div
-                key={idx}
-                className="flex items-center justify-between space-x-4 bg-white/5 p-3 rounded-lg"
-              >
-                <div className="flex items-center">
-                  <div className="relative w-16 h-16 rounded overflow-hidden">
-                    <Image
-                      src={track.thumbnail}
-                      alt={track.title}
-                      fill
-                      className="object-cover"
-                    />
+                {selectedPlaylist.tracks.map((track, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between space-x-4 bg-[var(--foreground)]/5 p-3 rounded-lg"
+                  >
+                    <div className="flex items-center">
+                      <div className="relative w-16 h-16 rounded overflow-hidden">
+                        <Image
+                          src={track.thumbnail}
+                          alt={track.title}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+          
+                      <div className="pl-5">
+                        <p className="font-semibold">{track.title}</p>
+                        {track.movie && (
+                          <p className="text-sm subtext">{track.movie}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center p-6 rounded-full bg-[var(--foreground)]/10">
+                      <SimplePlayer src={track.url}/>
+                    </div> 
+            
                   </div>
-      
-                  <div className="pl-5">
-                    <p className="font-semibold">{track.title}</p>
-                    {track.movie && (
-                      <p className="text-sm text-gray-400">{track.movie}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center p-6 rounded-full bg-white/10">
-                  <SimplePlayer src={track.url}/>
-                </div> 
-        
+                ))}
               </div>
-            ))}
+            </div>  
           </div>
-        </div>
+        </div>  
       ) : (
         // 일반 카테고리 렌더링
         <div
@@ -147,7 +156,7 @@ export default function Project() {
           {filteredPlaylists.map((playlist) => (
             <Link key={playlist.slug} href={`/project/${playlist.slug}`}>
               <div
-                className={`${
+                className={`card-shadow ${
                   viewMode === "grid"
                     ? "aspect-square"
                     : "flex items-center space-x-4 h-24 custom-hover-bg"
@@ -180,7 +189,7 @@ export default function Project() {
                 {viewMode === "list" && (
                   <div className="pl-2">
                     <p className="font-semibold">{playlist.title}</p>
-                    <p className="text-sm text-gray-400">
+                    <p className="text-sm subtext">
                       {playlist.tracks.length} tracks
                     </p>
                   </div>
