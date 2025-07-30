@@ -6,7 +6,8 @@
     "thumbnail": "/thumbnails/disney1.jpg",
     "category": "playlist",
     "desc_kim": "디즈니 파트1 칼마토의 그 역사적 시작. 너무 감사한 일이다.",
-    "desc_235": "1",
+    "desc_lee": "1",
+    "youtubeUrl": "https://youtu.be/j3Wd9z3jtU0?si=XK4QUH0ZRUvLF4Tx",
     "tracks": [
       {
         "title": "When You Wish Upon A Star",
@@ -88,72 +89,80 @@
     "slug": "disney-playlist-part-2",
     "thumbnail": "/thumbnails/disney2.jpg",
     "category": "playlist",
-    "description": "디즈니는 클래식이다. 칼마토의 본격적인 시작을 알린 디즈니 플리 그 두번째.",
+    "desc_kim": "디즈니는 클래식이다. 칼마토의 본격적인 시작을 알린 디즈니 플리 그 두번째.",
+    "desc_lee": "앙 디즈니2",
+    "youtubeUrl": "https://youtu.be/yjN5SwjEUb8?si=9MHnKlttWZ_DgTJ3",
     "tracks": [
       {
         "title": "Someday My Prince Will Come",
         "movie": "백설공주 (Snow White)",
-        "thumbnail": "/thumbnails/disney/sample.jpg",
+        "thumbnail": "/thumbnails/disney2/someday.jpg",
         "url": "/tracks/disney/someday-my-prince-will-come.mp3"
       },
       {
         "title": "The Second Star to the Right",
         "movie": "피터팬 (Peter Pan)",
-        "thumbnail": "/thumbnails/disney/sample.jpg",
+        "thumbnail": "/thumbnails/disney2/peter.jpg",
         "url": "/tracks/disney/the-second-star-to-the-right.mp3"
       },
       {
         "title": "When Will My Life Begin",
         "movie": "라푼젤 (Tangled)",
-        "thumbnail": "/thumbnails/disney/sample.jpg",
+        "thumbnail": "/thumbnails/disney2/when_will.jpg",
         "url": "/tracks/disney/when-will-my-life-begin.mp3"
       },
       {
         "title": "If I Never Knew You",
         "movie": "포카혼타스 (Pocahontas)",
-        "thumbnail": "/thumbnails/disney/sample.jpg",
+        "thumbnail": "/thumbnails/disney2/pocahontas.jpg",
         "url": "/tracks/disney/if-i-never-knew-you.mp3"
       },
       {
         "title": "Married Life",
         "movie": "업 (Up)",
-        "thumbnail": "/thumbnails/disney/sample.jpg",
+        "thumbnail": "/thumbnails/disney2/up.jpg",
         "url": "/tracks/disney/married-life.mp3"
       },
       {
         "title": "Can You Feel the Love Tonight",
         "movie": "라이온 킹 (The Lion King)",
-        "thumbnail": "/thumbnails/disney/sample.jpg",
+        "thumbnail": "/thumbnails/disney2/lion.jpg",
         "url": "/tracks/disney/can-you-feel-the-love-tonight.mp3"
       },
       {
         "title": "When She Loved Me",
         "movie": "토이스토리 (Toy Story)",
-        "thumbnail": "/thumbnails/disney/sample.jpg",
+        "thumbnail": "/thumbnails/disney2/when_she_loved_me.jpg",
         "url": "/tracks/disney/when-she-loved-me.mp3"
       },
       {
         "title": "Winnie the Pooh",
         "movie": "푸 (Winnie the Pooh)",
-        "thumbnail": "/thumbnails/disney/sample.jpg",
+        "thumbnail": "/thumbnails/disney2/pooh.jpg",
         "url": "/tracks/disney/winnie-the-pooh.mp3"
       },
       {
         "title": "You’ve Got a Friend in Me",
         "movie": "토이스토리 (Toy Story)",
-        "thumbnail": "/thumbnails/disney/sample.jpg",
+        "thumbnail": "/thumbnails/disney2/you_got_a_friend.jpg",
         "url": "/tracks/disney/youve-got-a-friend-in-me.mp3"
       },
       {
         "title": "Steal the Show",
         "movie": "엘리멘탈 (Elemental)",
-        "thumbnail": "/thumbnails/disney/sample.jpg",
+        "thumbnail": "/thumbnails/disney2/steal.jpg",
         "url": "/tracks/disney/steal-the-show.mp3"
       },
       {
         "title": "Beyond",
         "movie": "모아나 2 (Moana 2)",
-        "thumbnail": "/thumbnails/disney/sample.jpg",
+        "thumbnail": "/thumbnails/disney2/beyond.jpg",
+        "url": "/tracks/disney/beyond.mp3"
+      },
+      {
+        "title": "Le Festin",
+        "movie": "라따뚜이 (Ratatouille)",
+        "thumbnail": "/thumbnails/disney2/le.jpg",
         "url": "/tracks/disney/beyond.mp3"
       }
     ]
@@ -165,6 +174,7 @@
     "thumbnail": "/thumbnails/ghibli.jpg",
     "category": "playlist",
     "description": "노래는 좋지만 인기는 별로 없는 비운의 플리. 사람마다 지브리와 디즈니의 호불호가 갈리곤 한다",
+    "youtubeUrl": "https://youtu.be/cBvnfZSIvbI?si=TWxCaXAGJM4nIbKt",
     "tracks": [
     {
       "title": "언제나 몇번이라도 (Always With Me)",
@@ -241,59 +251,60 @@
     "thumbnail": "/thumbnails/christmas.jpg",
     "category": "playlist",
     "description": "크리스마스 한철 장사를 노렸다! 무난히 좋은 성과를 거뒀으나 asmr 성적은 처참.",
+    "youtubeUrl": "https://youtu.be/1CgqoO-whSA?si=2QU1EH0Y-W2zN-1L",
     "tracks": [
       {
         "title": "Santa Claus Is Coming To Town",
         "movie": "프레드 쿠츠(J. Fred Coots) & 해븐 길레스피(Haven Gillespie)",
-        "thumbnail": "/thumbnails/christmas/sample.jpg",
+        "thumbnail": "/thumbnails/christmas/santaclaus.jpg",
         "url": "/tracks/christmas/santa-claus-is-coming-to-town.mp3"
       },
       {
         "title": "White Christmas",
         "movie": "Bing Crosby",
-        "thumbnail": "/thumbnails/christmas/sample.jpg",
+        "thumbnail": "/thumbnails/christmas/white_xmas.jpg",
         "url": "/tracks/christmas/white-christmas.mp3"
       },
       {
         "title": "Underneath the Tree",
         "movie": "Kelly Clarkson",
-        "thumbnail": "/thumbnails/christmas/sample.jpg",
+        "thumbnail": "/thumbnails/christmas/underneath.jpg",
         "url": "/tracks/christmas/underneath-the-tree.mp3"
       },
       {
         "title": "It's Beginning to Look a Lot Like Christmas",
         "movie": "Meredith Willson",
-        "thumbnail": "/thumbnails/christmas/sample.jpg",
+        "thumbnail": "/thumbnails/christmas/beginning.jpg",
         "url": "/tracks/christmas/its-beginning-to-look-a-lot-like-christmas.mp3"
       },
       {
         "title": "Jingle Bell Rock",
         "movie": "Bobby Helms",
-        "thumbnail": "/thumbnails/christmas/sample.jpg",
+        "thumbnail": "/thumbnails/christmas/jingle.jpg",
         "url": "/tracks/christmas/jingle-bell-rock.mp3"
       },
       {
         "title": "Last Christmas",
         "movie": "Wham!",
-        "thumbnail": "/thumbnails/christmas/sample.jpg",
+        "thumbnail": "/thumbnails/christmas/last.jpg",
         "url": "/tracks/christmas/last-christmas.mp3"
       },
       {
         "title": "Christmas Without You",
         "movie": "Ava Max",
-        "thumbnail": "/thumbnails/christmas/sample.jpg",
+        "thumbnail": "/thumbnails/christmas/xmas_without.jpg",
         "url": "/tracks/christmas/christmas-without-you.mp3"
       },
       {
         "title": "Santa Tell Me",
         "movie": "Ariana Grande",
-        "thumbnail": "/thumbnails/christmas/sample.jpg",
+        "thumbnail": "/thumbnails/christmas/santa_tell_me.jpg",
         "url": "/tracks/christmas/santa-tell-me.mp3"
       },
       {
         "title": "All I Want for Christmas Is You",
         "movie": "Mariah Carey",
-        "thumbnail": "/thumbnails/christmas/sample.jpg",
+        "thumbnail": "/thumbnails/christmas/all_i_want.jpg",
         "url": "/tracks/christmas/all-i-want-for-christmas-is-you.mp3"
       }
     ]
@@ -305,47 +316,48 @@
     "thumbnail": "/thumbnails/disney/frozen_asmr_pl.jpg",
     "category": "playlist",
     "description": "디즈니 중에서도 유독 인기있는 겨울왕국. 요청은 많았으나 성적은 저조한 아이러니.",
+    "youtubeUrl": "https://youtu.be/jvQnB-lRPt4?si=AzOkhHTP352K9lBR",
     "tracks": [
       {
         "title": "Do You Want to Build a Snowman?",
         "movie": "겨울왕국 (Frozen)",
-        "thumbnail": "/thumbnails/frozen/sample.jpg",
+        "thumbnail": "/thumbnails/frozen/snowman.jpg",
         "url": "/tracks/frozen/do-you-want-to-build-a-snowman.mp3"
       },
       {
         "title": "For the First Time in Forever",
         "movie": "겨울왕국 (Frozen)",
-        "thumbnail": "/thumbnails/frozen/sample.jpg",
+        "thumbnail": "/thumbnails/frozen/first_time.jpg",
         "url": "/tracks/frozen/for-the-first-time-in-forever.mp3"
       },
       {
         "title": "Into the Unknown",
         "movie": "겨울왕국 2 (Frozen 2)",
-        "thumbnail": "/thumbnails/frozen/sample.jpg",
+        "thumbnail": "/thumbnails/frozen/unknown.jpg",
         "url": "/tracks/frozen/into-the-unknown.mp3"
       },
       {
         "title": "Let It Go",
         "movie": "겨울왕국 (Frozen)",
-        "thumbnail": "/thumbnails/frozen/sample.jpg",
+        "thumbnail": "/thumbnails/frozen/let.jpg",
         "url": "/tracks/frozen/let-it-go.mp3"
       },
       {
         "title": "Love Is an Open Door",
         "movie": "겨울왕국 (Frozen)",
-        "thumbnail": "/thumbnails/frozen/sample.jpg",
+        "thumbnail": "/thumbnails/frozen/opendoor.jpg",
         "url": "/tracks/frozen/love-is-an-open-door.mp3"
       },
       {
         "title": "Show Yourself",
         "movie": "겨울왕국 2 (Frozen 2)",
-        "thumbnail": "/thumbnails/frozen/sample.jpg",
+        "thumbnail": "/thumbnails/frozen/yourself.jpg",
         "url": "/tracks/frozen/show-yourself.mp3"
       },
       {
         "title": "Some Things Never Change",
         "movie": "겨울왕국 2 (Frozen 2)",
-        "thumbnail": "/thumbnails/frozen/sample.jpg",
+        "thumbnail": "/thumbnails/frozen/something.png",
         "url": "/tracks/frozen/some-things-never-change.mp3"
       }
     ]

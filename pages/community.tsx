@@ -28,7 +28,7 @@ export default function Request() {
 
           {/* 텍스트 영역 */}
           <motion.div
-            className="absolute top-1/2 left-30 transform -translate-y-1/2 z-10 text-white"
+            className="absolute top-1/2 left-20 md:left-30 transform -translate-y-1/2 z-10 text-white"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, ease: "easeOut" }}
@@ -71,7 +71,7 @@ export default function Request() {
 
           {/* 텍스트 영역 */}
           <motion.div
-            className="absolute top-1/2 left-30 transform -translate-y-1/2 z-10 text-white"
+            className="absolute top-1/2 left-20 md:left-30 transform -translate-y-1/2 z-10 text-white"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, ease: "easeOut", delay: 0.8 }}

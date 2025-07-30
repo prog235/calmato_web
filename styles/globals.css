@@ -75,3 +75,16 @@ html:not(.dark) .card-shadow:hover {
   box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.2); /* hover 시 더 부드럽고 깊은 그림자 */
 }
 
+.logo-light {
+  display: block;
+}
+.logo-dark {
+  display: none;
+}
+
+html.dark .logo-light {
+  display: none;
+}
+html.dark .logo-dark {
+  display: block;
+}

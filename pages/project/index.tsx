@@ -17,7 +17,7 @@ export default function Project() {
   const isAsmr = filter === "asmr";
 
   return (
-    <main className="min-h-screen px-8 sm:px-16 md:px-32 mb-16">
+    <main className="min-h-screen px-8 sm:px-12 md:px-16 mb-16">
       {/* 카테고리 필터 */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex space-x-6 text-[16px]">
@@ -106,11 +106,9 @@ export default function Project() {
           </div>
           
           <div className="relative w-full border border-[var(--foreground)]/10 rounded-r-md p-0.5 shadow-xl">
-            <div className="rounded-sm border border-[var(--foreground)]/5">
-              <div className="absolute inset-0 z-0 bg-[url('/beige-paper.png')] bg-repeat bg-[length:300px_300px] opacity-15 pointer-events-none" />
-          
+            <div className="rounded-sm border border-[var(--foreground)]/5">      
               {/* 선택된 playlist의 트랙만 보여주는 리스트 */}
-              <div className="relative flex-col py-5 px-6 space-y-4 border-0 z-10 rounded-l-lg">
+              <div className="relative flex-col p-4 space-y-4 border-0 z-10 rounded-l-lg">
 
                 {selectedPlaylist.tracks.map((track, idx) => (
                   <div

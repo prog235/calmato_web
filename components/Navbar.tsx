@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/router";
 import { motion } from "framer-motion";
 
@@ -14,14 +15,31 @@ export default function Navbar() {
   ];
 
   return (
-    <header className="flex flex-col items-center mt-10 mb-4">
+    <header className="flex flex-col items-center mt-8 mb-4">
       {/* Calmato 로고 (클릭 시 홈 이동) */}
-      <Link href="/" className="text-5xl font-semibold hover:opacity-80 transition">
-        Calmato
+      <Link href="/" className="hover:opacity-80 transition block w-[180px] h-[80px] relative">
+        {/* 라이트 모드용 로고 */}
+        <Image
+          src="/calmato_b_logo@4x.png"
+          alt="Calmato Logo Light"
+          fill
+          className="object-contain logo-light"
+          priority
+        />
+
+        {/* 다크 모드용 로고 */}
+        <Image
+          src="/calmato_w_logo@4x.png"
+          alt="Calmato Logo Dark"
+          fill
+          className="object-contain logo-dark"
+          priority
+        />
       </Link>
 
+
       {/* 메뉴 */}
-      <nav className="grid grid-cols-5 w-full max-w-2xl text-[16px] text-center mt-6 mb-4">
+      <nav className="grid grid-cols-5 w-full max-w-2xl text-[16px] text-center mt-4 mb-4">
         {links.map((link) => (
           <motion.div
             key={link.href}
