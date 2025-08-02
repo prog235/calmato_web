@@ -173,7 +173,8 @@
     "slug": "ghibli-playlist",
     "thumbnail": "/thumbnails/ghibli.jpg",
     "category": "playlist",
-    "description": "노래는 좋지만 인기는 별로 없는 비운의 플리. 사람마다 지브리와 디즈니의 호불호가 갈리곤 한다",
+    "desc_kim": "지금 이 화면은 센과 치히로의 배경 모티브가 된 실제 온천의 모습이다. 분량을 조금 늘리기 위해서 뻘소리를 첨가해보도록 하겠다. 근데 이렇게 쭉 옆으로 늘어나는 것 말고는 방법이 없으려나",
+    "desc_lee": "노래는 좋지만 인기는 별로 없는 비운의 플리. 사람마다 지브리와 디즈니의 호불호가 갈리곤 한다. 토론 결과 짜장면 맛집으로 소문난 곳에서 짬뽕을 잘 먹지 않는다는 결론이 지어졌다.",
     "youtubeUrl": "https://youtu.be/cBvnfZSIvbI?si=TWxCaXAGJM4nIbKt",
     "tracks": [
     {
@@ -250,7 +251,8 @@
     "slug": "christmas-playlist",
     "thumbnail": "/thumbnails/christmas.jpg",
     "category": "playlist",
-    "description": "크리스마스 한철 장사를 노렸다! 무난히 좋은 성과를 거뒀으나 asmr 성적은 처참.",
+    "desc_kim": "지금 이 화면은 센과 치히로의 배경 모티브가 된 실제 온천의 모습이다. 분량을 조금 늘리기 위해서 뻘소리를 첨가해보도록 하겠다. 근데 이렇게 쭉 옆으로 늘어나는 것 말고는 방법이 없으려나",
+    "desc_lee": "노래는 좋지만 인기는 별로 없는 비운의 플리. 사람마다 지브리와 디즈니의 호불호가 갈리곤 한다. 토론 결과 짜장면 맛집으로 소문난 곳에서 찜뽕을 잘 먹지 않는다는 결론이 지어졌다.",
     "youtubeUrl": "https://youtu.be/1CgqoO-whSA?si=2QU1EH0Y-W2zN-1L",
     "tracks": [
       {
@@ -315,7 +317,8 @@
     "slug": "frozen-playlist",
     "thumbnail": "/thumbnails/disney/frozen_asmr_pl.jpg",
     "category": "playlist",
-    "description": "디즈니 중에서도 유독 인기있는 겨울왕국. 요청은 많았으나 성적은 저조한 아이러니.",
+    "desc_kim": "지금 이 화면은 센과 치히로의 배경 모티브가 된 실제 온천의 모습이다. 분량을 조금 늘리기 위해서 뻘소리를 첨가해보도록 하겠다. 근데 이렇게 쭉 옆으로 늘어나는 것 말고는 방법이 없으려나",
+    "desc_lee": "노래는 좋지만 인기는 별로 없는 비운의 플리. 사람마다 지브리와 디즈니의 호불호가 갈리곤 한다. 토론 결과 짜장면 맛집으로 소문난 곳에서 짬뽕을 잘 먹지 않는다는 결론이 지어졌다.",
     "youtubeUrl": "https://youtu.be/jvQnB-lRPt4?si=AzOkhHTP352K9lBR",
     "tracks": [
       {
@@ -368,7 +371,8 @@
     "slug": "your-name-playlist",
     "thumbnail": "/thumbnails/disney1.jpg",
     "category": "playlist",
-    "description": "칼마토의 유례없는 성장세를 이끌어준 sparkle을 비롯한 띵곡 모음집.",
+    "desc_kim": "지금 이 화면은 센과 치히로의 배경 모티브가 된 실제 온천의 모습이다. 분량을 조금 늘리기 위해서 뻘소리를 첨가해보도록 하겠다. 근데 이렇게 쭉 옆으로 늘어나는 것 말고는 방법이 없으려나",
+    "desc_lee": "노래는 좋지만 인기는 별로 없는 비운의 플리. 사람마다 지브리와 디즈니의 호불호가 갈리곤 한다. 토론 결과 짜장면 맛집으로 소문난 곳에서 찜뽕을 잘 먹지 않는다는 결론이 지어졌다.",
     "tracks": []
   },
   {
@@ -377,7 +381,8 @@
     "slug": "weathering-with-you-playlist",
     "thumbnail": "/thumbnails/disney1.jpg",
     "category": "playlist",
-    "description": "신카이 마코토 재난 3부작 중 날씨의 아이. 역시나 띵곡이 많다.",
+    "desc_kim": "지금 이 화면은 센과 치히로의 배경 모티브가 된 실제 온천의 모습이다. 분량을 조금 늘리기 위해서 뻘소리를 첨가해보도록 하겠다. 근데 이렇게 쭉 옆으로 늘어나는 것 말고는 방법이 없으려나",
+    "desc_lee": "노래는 좋지만 인기는 별로 없는 비운의 플리. 사람마다 지브리와 디즈니의 호불호가 갈리곤 한다. 토론 결과 짜장면 맛집으로 소문난 곳에서 찜뽕을 잘 먹지 않는다는 결론이 지어졌다.",
     "tracks": []
   }
 ]
