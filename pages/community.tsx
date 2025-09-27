@@ -5,7 +5,7 @@ import Link from "next/link";
 export default function Request() {
   return (
     <div>
-      <Link href="/board/free">
+      <Link href="/board">
         <div className="block relative w-full h-[40vh] overflow-hidden mb-10 group">
           {/* 배경 이미지 */}
           <motion.div
@@ -48,7 +48,7 @@ export default function Request() {
       </Link>
 
         
-      <Link href="/board/free">
+      <Link href="/board">
         <div className="block relative w-full h-[40vh] overflow-hidden mb-10 group">
           {/* 배경 이미지 */}
           <motion.div

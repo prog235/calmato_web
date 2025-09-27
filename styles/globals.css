@@ -29,10 +29,16 @@ body {
 
 /* 전역 색상 변수: 기본 라이트 모드 */
 :root {
-  --background: #f9fafb;
+  /*--background: #f9fafb;
   --foreground: #1a1a1a;
   --hover-background: #e5e7eb;
   --subtext: #6b7280;
+  --veil : 255 255 255; */
+  --background: #0a0a0a;  /*  배경색: 거의 검정 */
+  --foreground: #ededed;    /* 텍스트 색: 밝은 회색 */
+  --hover-background: #1a1a1a; 
+  --subtext: #9ca3af;
+  --veil : 0 0 0;
 }
 
 /* 다크 모드 적용: next-themes가 붙여주는 html.dark 기반 */
@@ -41,6 +47,7 @@ html.dark {
   --foreground: #ededed;    /* 텍스트 색: 밝은 회색 */
   --hover-background: #1a1a1a; 
   --subtext: #9ca3af;
+  --veil : 0 0 0;
 }
 
 /* 전역 적용 */

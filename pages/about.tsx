@@ -37,7 +37,7 @@ export default function About() {
       </motion.div>
 
       <div className="absolute inset-0 bg-black/40 -z-5" />
-      <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-[var(--background)] to-transparent -z-5" />
+      <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-[var(--background)] to-transparent -z-5" />
 
       {/* 텍스트 영역 */}
       <div className="max-w-3xl mx-auto px-6 pt-40 pb-24 text-center">
