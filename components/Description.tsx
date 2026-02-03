@@ -1,6 +1,6 @@
 export default function DescriptionSection({ desc_kim, desc_lee }: { desc_kim: string; desc_lee: string }) {
   return (
-    <div className="mt-4 max-w-5xl mx-auto space-y-12">
+    <div className="mt-4 max-w-5xl space-y-12">
       {/* 영상 기획 의도 */}
       <div>
         <h3 className="text-xl sm:text-2xl font-bold mb-4 flex items-center gap-2">

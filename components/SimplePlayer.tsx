@@ -2,17 +2,18 @@
 import { useEffect, useRef, useState } from "react";
 import { FaPlay, FaPause, FaVolumeUp, FaVolumeMute } from "react-icons/fa";
 import { motion } from "framer-motion";
+import { getAudioUrl } from "@/lib/getUrl";
 
 type Track = {
-  id?: string;
-  url?: string;
-  title?: string;
-  artist?: string;
-  desc_kim?: string;
-  desc_lee?: string;
-  youtubeUrl?: string;
-  thumbnail?: string;
-};
+  id: string | number;
+  title: string;
+  subtitle: string;
+  thumbnail_path: string;
+  audio_path: string;
+  desc_kim: string;
+  desc_lee: string;
+  youtube_url: string;
+}
 
 interface Props {
   track: Track;
@@ -71,9 +72,10 @@ export default function SimplePlayer({
   }, []);
 
   return (
+    
     <div className={`flex items-center space-x-6 px-2 py-3 ${className}`}>
       {/* keep audio hidden inside the pill as before */}
-      <audio ref={audioRef} src={track.url} preload="metadata" />
+      <audio ref={audioRef} src={getAudioUrl(track.audio_path) ?? "/audio/default.mp3"} preload="metadata" />
 
       <button onClick={togglePlay} aria-label={isPlaying ? "일시정지" : "재생"}>
         {isPlaying ? <FaPause /> : <FaPlay />}

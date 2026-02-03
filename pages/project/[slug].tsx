@@ -1,33 +1,80 @@
-import { GetStaticPaths, GetStaticProps } from "next";
-import albums from "@/album.json";
 import { useRouter } from "next/router";
 import ReactPlayer from "react-player";
 import DescriptionSection from "@/components/Description";
 import { motion } from "framer-motion";
+import { GetServerSideProps } from "next";
+import { supabaseServerForGSSP } from "@/lib/supabaseGSSP";
 
-interface Track {
+type Track = {
+  id: string | number;
   title: string;
-  movie: string;
-  thumbnail: string;
-  url: string;
+  subtitle: string;
 }
 
-interface Album {
+type Album = {
+  id: string | number; 
   title: string;
   slug: string;
   thumbnail: string;
   desc_kim: string;
   desc_lee: string;
-  youtubeUrl: string;
+  youtube_url: string;
   tracks: Track[];
 }
 
-export default function ProjectDetailPage({ album }: { album: Album }) {
+export const getServerSideProps: GetServerSideProps = async (ctx) => {
+  const supabase = supabaseServerForGSSP(ctx);
+
+  const slug = ctx.params?.slug;
+  if (typeof slug !== "string") {
+    return { notFound: true };
+  }
+
+  const { data, error } = await supabase
+    .from("playlists")
+    .select(`
+      id,
+      title,
+      slug,
+      thumbnail_path,
+      desc_kim,
+      desc_lee,
+      youtube_url,
+      tracks (
+        id,
+        title,
+        subtitle
+      )
+    `)
+    .eq("slug", slug)
+    .order("id", { foreignTable: "tracks", ascending: true })
+    .maybeSingle();
+
+  if (error) {
+    return {
+      props: { album: null, errorMessage: error.message },
+    };
+  }
+
+  if (!data) {
+    return { notFound: true };
+  }
+
+  return {
+    props: {
+      album: data,
+      errorMessage: null,
+    },
+  };
+};
+
+
+export default function ProjectDetailPage({ album, errorMessage }: { album: Album | null; errorMessage: string | null }) {
   const router = useRouter();
 
-  if (router.isFallback) {
-    return <div>Loading...</div>;
-  }
+  if (router.isFallback) return <div>Loading...</div>;
+  if (errorMessage) return <div>{errorMessage}</div>;
+  if (!album) return <div>Not found</div>;
 
   return (
     <motion.div
@@ -47,7 +94,7 @@ export default function ProjectDetailPage({ album }: { album: Album }) {
             {/* 유튜브 플레이어 */}
             <div className="relative aspect-[16/9] w-full overflow-hidden rounded-lg card-shadow">
               <ReactPlayer
-                src={album.youtubeUrl}
+                src={album.youtube_url}
                 width="100%"
                 height="100%"
                 className=""
@@ -73,7 +120,7 @@ export default function ProjectDetailPage({ album }: { album: Album }) {
                   <span className="text-md text-gray-400 w-14 text-center">{index + 1}</span>
                   <div>
                     <h3 className="text-base font-semibold">{track.title}</h3>
-                    <p className="text-sm subtext">{track.movie}</p>
+                    <p className="text-sm subtext">{track.subtitle}</p>
                   </div>
                 </div>
               </div>
@@ -83,30 +130,5 @@ export default function ProjectDetailPage({ album }: { album: Album }) {
       </div>
     </motion.div>  
   )
-  
 };
 
-export const getStaticPaths: GetStaticPaths = async () => {
-  const paths = albums.map((album) => ({
-    params: { slug: album.slug },
-  }));
-
-  return {
-    paths,
-    fallback: true, // or 'blocking'
-  };
-};
-
-export const getStaticProps: GetStaticProps = async ({ params }) => {
-  const album = albums.find((a) => a.slug === params?.slug);
-
-  if (!album) {
-    return { notFound: true };
-  }
-
-  return {
-    props: {
-      album,
-    },
-  };
-};

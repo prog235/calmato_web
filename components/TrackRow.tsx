@@ -2,18 +2,18 @@
 import { useMemo, useState, useEffect, useRef, useLayoutEffect } from "react";
 import { motion, useSpring, useTransform, useMotionValue } from "framer-motion";
 import SimplePlayer from "./SimplePlayer";
+import { getThumbnailUrl } from "@/lib/getUrl";
 
 type Track = {
-  id?: string;
-  url?: string;
-  title?: string;
-  artist?: string;
-  movie?: string;       // 한글/원제 표시
-  desc_kim?: string;
-  desc_lee?: string;
-  youtubeUrl?: string;
-  thumbnail?: string;
-};
+  id: string | number;
+  title: string;
+  subtitle: string;
+  thumbnail_path: string;
+  audio_path: string;
+  desc_kim: string;
+  desc_lee: string;
+  youtube_url: string;
+}
 
 interface Props {
   track: Track;
@@ -47,19 +47,25 @@ export default function TrackRow({ track }: Props) {
   const panelMT  = useTransform(p, (v) => v * 12);            // 0 → 16px (mt-4 대체)
   const panelOpacity = p;
 
-  // 콘텐츠 높이 측정 (열릴 때/내용 변할 때)
-  useLayoutEffect(() => {
-    if (!contentRef.current) return;
-    // scrollHeight는 부모 height 0이어도 실제 콘텐츠 높이를 반환
-    naturalH.set(contentRef.current.scrollHeight);
-  }, [track.desc_kim, track.desc_lee, track.youtubeUrl, track.title, track.movie, open]);
-
-  // 5) 마운트 제어: 펼칠 때 마운트, 접힘이 끝나면 언마운트
+  // 마운트 제어: 펼칠 때 마운트, 접힐 때는 p만 0으로
   const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
-    if (open) setMounted(true);
-    p.set(open ? 1 : 0);
+    if (open) {
+      setMounted(true);
+    } else {
+      p.set(0);
+    }
   }, [open, p]);
+
+  // mounted + DOM 준비된 뒤에 높이 측정하고 그 다음에 p를 1로
+  useLayoutEffect(() => {
+    if (!open || !mounted || !contentRef.current) return;
+
+    naturalH.set(contentRef.current.scrollHeight);
+    p.set(1);
+  }, [open, mounted, track.desc_kim, track.desc_lee, track.youtube_url, track.title, track.subtitle, p]);
+  
   useEffect(() => {
     const unsub = p.on("change", (v) => {
       if (!open && v <= 0.001) setMounted(false);
@@ -82,9 +88,9 @@ export default function TrackRow({ track }: Props) {
             className="h-16 rounded-md overflow-hidden"
             style={{ width: spacerW, marginRight: spacerMR }}
           >
-            {track.thumbnail && (
+            {track.thumbnail_path && (
               <motion.img
-                src={track.thumbnail}
+                src={getThumbnailUrl(track.thumbnail_path) ?? "default.png"}
                 alt="" aria-hidden="true"
                 className="h-16 w-16 rounded-md object-cover pointer-events-none"
                 style={{ opacity: thumbOpacity, scale: thumbScale, y: thumbY }}
@@ -95,7 +101,7 @@ export default function TrackRow({ track }: Props) {
 
           <div className="min-w-0">
             <h3 className="text-md font-semibold truncate">{track.title}</h3>
-            {track.movie && <p className="text-sm subtext truncate">{track.movie}</p>}
+            {track.subtitle && <p className="text-sm subtext truncate">{track.subtitle}</p>}
           </div>
         </div>
 
@@ -112,13 +118,13 @@ export default function TrackRow({ track }: Props) {
       {mounted && (
         <>
           {/* 배경: 위→아래 와이프 + 살짝 drop */}
-          {track.thumbnail && (
+          {track.thumbnail_path && (
             <motion.div
               className="absolute inset-0 z-0 overflow-hidden rounded-lg"
               style={{ clipPath: clip, transformOrigin: "top" }}
             >
               <motion.img
-                src={track.thumbnail}
+                src={getThumbnailUrl(track.thumbnail_path) ?? "default.png"}
                 alt=""
                 className="h-full w-full object-cover"
                 style={{ y: bgY, opacity: bgOpacity }}
@@ -165,10 +171,10 @@ export default function TrackRow({ track }: Props) {
                     <p className="text-sm leading-7">{track.desc_lee}</p>
                   </div>
                 )}
-                {track.youtubeUrl && (
+                {track.youtube_url && (
                   <div className="md:col-span-2">
                     <a
-                      href={track.youtubeUrl}
+                      href={track.youtube_url}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm 

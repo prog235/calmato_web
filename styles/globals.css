@@ -74,6 +74,15 @@ body {
   transition: box-shadow 0.3s ease;
 }
 
+/* hide horizontal scrollbar but keep scroll */
+.hide-scrollbar {
+  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none;    /* Firefox */
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;            /* Chrome/Safari */
+}
+
 html:not(.dark) .card-shadow {
   box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.15); /* 기존보다 더 큼 + 진함 */
 }
