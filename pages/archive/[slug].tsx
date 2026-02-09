@@ -4,23 +4,9 @@ import DescriptionSection from "@/components/Description";
 import { motion } from "framer-motion";
 import { GetServerSideProps } from "next";
 import { supabaseServerForGSSP } from "@/lib/supabaseGSSP";
-
-type Track = {
-  id: string | number;
-  title: string;
-  subtitle: string;
-}
-
-type Album = {
-  id: string | number; 
-  title: string;
-  slug: string;
-  thumbnail: string;
-  desc_kim: string;
-  desc_lee: string;
-  youtube_url: string;
-  tracks: Track[];
-}
+import { getPlaylistBySlugWithTracks } from "@/lib/queries/playlists";
+import type { Album } from "@/lib/types"
+import { mapPlaylistRowToAlbum } from "@/lib/mappers/album";
 
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
   const supabase = supabaseServerForGSSP(ctx);
@@ -30,25 +16,7 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
     return { notFound: true };
   }
 
-  const { data, error } = await supabase
-    .from("playlists")
-    .select(`
-      id,
-      title,
-      slug,
-      thumbnail_path,
-      desc_kim,
-      desc_lee,
-      youtube_url,
-      tracks (
-        id,
-        title,
-        subtitle
-      )
-    `)
-    .eq("slug", slug)
-    .order("id", { foreignTable: "tracks", ascending: true })
-    .maybeSingle();
+  const { data, error } = await getPlaylistBySlugWithTracks(supabase, slug);
 
   if (error) {
     return {
@@ -62,7 +30,7 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
 
   return {
     props: {
-      album: data,
+      album: mapPlaylistRowToAlbum(data),
       errorMessage: null,
     },
   };

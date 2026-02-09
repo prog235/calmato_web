@@ -2,10 +2,10 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 
-export default function Request() {
+export default function Community() {
   return (
     <div>
-      <Link href="/board">
+      <Link href="/community/board">
         <div className="block relative w-full h-[40vh] overflow-hidden mb-10 group">
           {/* 배경 이미지 */}
           <motion.div
@@ -48,7 +48,7 @@ export default function Request() {
       </Link>
 
         
-      <Link href="/board">
+      <Link href="/community/request">
         <div className="block relative w-full h-[40vh] overflow-hidden mb-10 group">
           {/* 배경 이미지 */}
           <motion.div

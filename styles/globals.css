@@ -82,6 +82,10 @@ body {
 .hide-scrollbar::-webkit-scrollbar {
   display: none;            /* Chrome/Safari */
 }
+.horizontal-scroll-lock {
+  overscroll-behavior: contain;
+  touch-action: pan-x;
+}
 
 html:not(.dark) .card-shadow {
   box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.15); /* 기존보다 더 큼 + 진함 */

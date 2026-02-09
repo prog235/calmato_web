@@ -9,16 +9,28 @@ export default function Navbar() {
   const links = [
     { href: "/", label: "Home" },
     { href: "/about", label: "About" },
-    { href: "/project", label: "Project" },
+    { href: "/archive", label: "Archive" },
     { href: "/community", label: "Community" },
     { href: "/contact", label: "Contact" },
   ];
 
   return (
-    <header className="flex flex-col items-center mt-8 mb-4">
-      {/* Calmato 로고 (클릭 시 홈 이동) */}
-      <Link href="/" className="hover:opacity-80 transition block w-[180px] h-[80px] relative">
-        {/* 라이트 모드용 로고 */}
+    <header
+      className="
+        w-full
+        px-8 sm:px-12 md:px-16
+        py-8
+        flex
+        items-center
+        justify-between
+      "
+    >
+      {/* 좌측: Calmato 로고 */}
+      <Link
+        href="/"
+        className="relative w-[160px] h-[80px] hover:opacity-80 transition"
+      >
+        {/* Light */}
         <Image
           src="/calmato_b_logo@4x.png"
           alt="Calmato Logo Light"
@@ -27,7 +39,7 @@ export default function Navbar() {
           priority
         />
 
-        {/* 다크 모드용 로고 */}
+        {/* Dark */}
         <Image
           src="/calmato_w_logo@4x.png"
           alt="Calmato Logo Dark"
@@ -37,27 +49,41 @@ export default function Navbar() {
         />
       </Link>
 
+      {/* 우측: 네비게이션 */}
+      <nav className="flex items-center gap-10 text-[15px]">
+        {links.map((link) => {
+          const isActive = router.pathname === link.href;
 
-      {/* 메뉴 */}
-      <nav className="grid grid-cols-5 w-full max-w-2xl text-[16px] text-center mt-4 mb-4">
-        {links.map((link) => (
-          <motion.div
-            key={link.href}
-            whileHover={{ scale: 1.1 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          >
-            <Link
-              href={link.href}
-              className={
-                `transition ${router.pathname === link.href ? "font-semibold" : "hover:text-gray-400"
-              }`}
+          return (
+            <motion.div
+              key={link.href}
+              whileHover={{ y: -2 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
-              {link.label}
-            </Link>
-          </motion.div>
-        ))}
+              <Link
+                href={link.href}
+                className={`
+                  transition
+                  ${
+                    isActive
+                      ? "font-semibold text-white"
+                      : "text-white/80 hover:text-white"
+                  }
+                `}
+              >
+                {link.label}
+              </Link>
+            </motion.div>
+          );
+        })}
+
+        {/* 우측 끝: 프로필 아이콘 (선택) */}
+        <Link href="/profile">
+          <div className="ml-2 w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
+            <span className="text-sm text-white/80">👤</span>
+          </div>
+        </Link>  
       </nav>
     </header>
   );
 }
-
