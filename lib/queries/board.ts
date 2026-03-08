@@ -18,12 +18,12 @@ export type BoardPostRow = {
   profiles: { nickname: string } | null;
 
   post_images: { storage_path: string | null; sort_order: number | null }[] | null;
-
 };
 
 export function buildBoardSearchOr(q: string) {
   const trimmed = (q ?? "").trim();
   if (!trimmed) return null;
+
   // title OR content
   return `title.ilike.%${trimmed}%,content.ilike.%${trimmed}%`;
 }
@@ -31,7 +31,10 @@ export function buildBoardSearchOr(q: string) {
 /**
  * 게시글 개수(페이지네이션용)
  */
-export async function countBoardPosts(db: SupabaseClient, params: { q?: string }) {
+export async function countBoardPosts(
+  db: SupabaseClient,
+  params: { q?: string }
+) {
   const or = buildBoardSearchOr(params.q ?? "");
 
   let query = db.from("posts").select("id", { count: "exact", head: true });
@@ -42,12 +45,34 @@ export async function countBoardPosts(db: SupabaseClient, params: { q?: string }
   return { count: res.count ?? 0, error: res.error };
 }
 
+type PostRowRaw = {
+  id: number;
+  user_id: string;
+  title: string;
+  content: string;
+  is_secret: boolean;
+  created_at: string;
+  view_count: number | null;
+  like_count: number | null;
+  comment_count: number | null;
+  post_images: { storage_path: string | null; sort_order: number | null }[] | null;
+};
+
+type ProfileRowRaw = {
+  id: string;
+  nickname: string | null;
+};
+
 /**
- * 한 페이지 게시글 조회 (profiles nickname + post_images 첫 장 + likes/comments count용 id 배열)
+ * 한 페이지 게시글 조회
  *
- * profilesFkName:
- *   posts.user_id -> profiles.id 관계 FK 이름
- *   예: "posts_user_id_fkey"
+ * 주의:
+ * 기존에는 posts.user_id -> profiles.id FK를 이용해
+ * profiles:profiles!fk_name(nickname) 형태로 직접 조인했지만,
+ * 이제 posts.user_id -> auth.users.id 이므로 같은 방식의 embed join은 불가능합니다.
+ *
+ * 외부 호출부와 충돌을 피하기 위해 params.profilesFkName은 그대로 받되,
+ * 내부에서는 사용하지 않습니다.
  */
 export async function getBoardPostsPage(
   db: SupabaseClient,
@@ -66,11 +91,7 @@ export async function getBoardPostsPage(
 
   const or = buildBoardSearchOr(params.q ?? "");
 
-  // FK 이름을 이용해 profiles 조인
-  // 예: profiles:profiles!posts_user_id_fkey(nickname)
-  const profilesJoin = `profiles:profiles!${params.profilesFkName}(nickname)`;
-
-  let query = db
+  let postsQuery = db
     .from("posts")
     .select(
       `
@@ -83,18 +104,52 @@ export async function getBoardPostsPage(
         view_count,
         like_count,
         comment_count,
-        ${profilesJoin},
         post_images(storage_path, sort_order)
       `
     )
     .order("created_at", { ascending: false })
     .range(from, to)
-    // post_images: sort_order 기준으로 첫 장만
     .order("sort_order", { foreignTable: "post_images", ascending: true })
     .limit(1, { foreignTable: "post_images" });
 
-  if (or) query = query.or(or);
+  if (or) postsQuery = postsQuery.or(or);
 
-  const res = await query;
-  return { data: (res.data as BoardPostRow[] | null) ?? null, error: res.error };
+  const postsRes = await postsQuery;
+
+  if (postsRes.error) {
+    return { data: null, error: postsRes.error };
+  }
+
+  const posts = (postsRes.data as PostRowRaw[] | null) ?? [];
+
+  if (posts.length === 0) {
+    return { data: [], error: null };
+  }
+
+  const userIds = Array.from(new Set(posts.map((post) => post.user_id)));
+
+  const profilesRes = await db
+    .from("profiles")
+    .select("id, nickname")
+    .in("id", userIds);
+
+  if (profilesRes.error) {
+    return { data: null, error: profilesRes.error };
+  }
+
+  const profileMap = new Map<string, { nickname: string } | null>();
+
+  for (const profile of ((profilesRes.data as ProfileRowRaw[] | null) ?? [])) {
+    profileMap.set(profile.id, {
+      nickname: profile.nickname ?? "Unknown",
+    });
+  }
+
+  const merged: BoardPostRow[] = posts.map((post) => ({
+    ...post,
+    profiles: profileMap.get(post.user_id) ?? null,
+    post_images: post.post_images ?? null,
+  }));
+
+  return { data: merged, error: null };
 }

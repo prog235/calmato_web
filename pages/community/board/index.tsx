@@ -4,9 +4,11 @@ import Head from "next/head";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
+import Image from "next/image";
 
 import PostCard from "@/components/PostCard";
-import { supabaseServerForGSSP } from "@/lib/supabaseGSSP"; // 파일명/경로 맞춰주세요
+import CommunityTabs from "@/components/CommunityTabs";
+import { supabaseServerForGSSP } from "@/lib/supabaseGSSP";
 import {
   BOARD_PAGE_SIZE,
   countBoardPosts,
@@ -42,13 +44,14 @@ type BoardPageProps = {
   q: string;
 };
 
+const REQUEST_BANNER_SRC = "/Group 1954.jpg"
+
 const POST_IMAGES_BUCKET = "post-images";
 
 /**
  * posts.user_id -> profiles.id FK 이름 (Supabase Relationship에서 확인)
- * 예: posts_user_id_fkey
  */
-const PROFILES_FK_NAME = "posts_user_id_fkey1";
+const PROFILES_FK_NAME = "posts_user_id_fkey";
 
 function clampExcerpt(content: string) {
   return (content ?? "").replace(/\s+/g, " ").trim();
@@ -88,7 +91,6 @@ export default function BoardPage(props: BoardPageProps) {
     router.push({ pathname: "/community/board", query });
   }
 
-  // 로그인 필요면 화면 깜빡임 최소화
   if (props.loginRequired) {
     return (
       <>
@@ -107,29 +109,37 @@ export default function BoardPage(props: BoardPageProps) {
       </Head>
 
       <div className="min-h-screen bg-black text-white">
-        <div className="px-8 sm:px-12 md:px-16 mb-16">
-          <div className="flex flex-col gap-3">
-            <div className="text-2xl font-semibold text-white/90">어떤 말이든 괜찮아요</div>
-            <div className="max-w-xl text-sm leading-relaxed text-white/55">
-              오늘 하루 있었던 일이나, 마음에 남은 고민들을 이곳에 남겨주세요
+        <div className="mb-16 px-8 sm:px-12 md:px-16">
+          <section className="heroSection">
+            <div className="heroImageWrap">
+              <Image
+                src={REQUEST_BANNER_SRC}
+                alt="Track request banner"
+                fill
+                priority
+                className="heroImage"
+              />
+              <div className="heroOverlay" />
+              <div className="heroContent">
+                <h1>Community</h1>
+                <p>여러분이 간직했던 마음을 나누는 공간입니다</p>
+                <p>천천히 이야기를 남겨 주세요</p>
+              </div>
             </div>
+          </section>
 
+          <section className="tabsSection">
+            <CommunityTabs current="board" />
+          </section>
+
+          <div className="mt-10 flex items-end justify-between gap-6 pb-3">
             <div>
               <Link
-                href="/community/write"
+                href="/community/board/write"
                 className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-sm text-white/80 ring-1 ring-white/10 transition hover:bg-white/15"
               >
                 게시물 작성하기
               </Link>
-            </div>
-          </div>
-
-          <div className="mt-10 flex items-end justify-between gap-6 border-b border-white/10 pb-3">
-            <div className="flex items-center gap-6 text-sm">
-              <button className="border-b-2 border-white/80 pb-2 font-semibold text-white/90">
-                자유 게시판
-              </button>
-              <button className="pb-2 text-white/60 hover:text-white/80">곡 신청</button>
             </div>
 
             <form onSubmit={onSubmitSearch} className="flex items-center gap-3">
@@ -223,7 +233,6 @@ export const getServerSideProps: GetServerSideProps<BoardPageProps> = async (ctx
   const page = Math.max(1, Number(pageRaw ?? "1") || 1);
   const q = (qRaw ?? "").trim();
 
-  // SSR 로그인 체크 (쿠키 기반)
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -243,13 +252,11 @@ export const getServerSideProps: GetServerSideProps<BoardPageProps> = async (ctx
 
   const viewerUserId = user.id;
 
-  // Count
   const countRes = await countBoardPosts(supabase, { q });
   const totalCount = countRes.count ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / BOARD_PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
 
-  // Page rows
   const { data, error } = await getBoardPostsPage(supabase, {
     q,
     page: safePage,
@@ -259,7 +266,7 @@ export const getServerSideProps: GetServerSideProps<BoardPageProps> = async (ctx
 
   if (error) {
     console.error("[BoardPage] getBoardPostsPage error:", error);
-    
+
     return {
       props: {
         loginRequired: false,
@@ -278,7 +285,6 @@ export const getServerSideProps: GetServerSideProps<BoardPageProps> = async (ctx
 
     const nickname = p.profiles?.nickname ?? "Unknown";
     const viewCount = p.view_count ?? 0;
-
     const likeCount = p.like_count ?? 0;
     const commentCount = p.comment_count ?? 0;
 
