@@ -1,10 +1,20 @@
 import { FormEvent, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
+export type CreatedRequestRow = {
+  id: number;
+  user_id: string;
+  title: string;
+  subtitle: string | null;
+  content: string | null;
+  created_at: string;
+  like_count: number | null;
+};
+
 type RequestCreateModalProps = {
   open: boolean;
   onClose: () => void;
-  onCreated?: () => void;
+  onCreated?: (created: CreatedRequestRow) => void | Promise<void>;
 };
 
 export default function RequestCreateModal({
@@ -61,21 +71,31 @@ export default function RequestCreateModal({
       setSubmitting(true);
       setErrorMessage("");
 
-      const { error } = await supabase.from("requests").insert({
-        title: title.trim(),
-        subtitle: subtitle.trim(),
-        content: content.trim() === "" ? null : content.trim(),
-      });
+      const { data, error } = await supabase
+        .from("requests")
+        .insert({
+          title: title.trim(),
+          subtitle: subtitle.trim(),
+          content: content.trim() === "" ? null : content.trim(),
+        })
+        .select("id, user_id, title, subtitle, content, created_at, like_count")
+        .single();
 
       if (error) {
         throw error;
       }
 
+      if (!data) {
+        throw new Error("생성된 요청 데이터를 불러오지 못했습니다.");
+      }
+
+      await onCreated?.(data as CreatedRequestRow);
       onClose();
-      onCreated?.();
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "곡 신청 등록 중 오류가 발생했습니다.";
+        error instanceof Error
+          ? error.message
+          : "곡 신청 등록 중 오류가 발생했습니다.";
       setErrorMessage(message);
     } finally {
       setSubmitting(false);
@@ -146,7 +166,7 @@ export default function RequestCreateModal({
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="어떤 분위기로 듣고 싶은지, 어떤 장면이 떠오르는지 자유롭게 적어주세요."
+              placeholder="어떤 분위기로 듣고 싶은지 자유롭게 적어주세요."
               rows={6}
               className="w-full resize-none rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-white placeholder:text-neutral-500 outline-none transition focus:border-white/30"
               maxLength={1000}

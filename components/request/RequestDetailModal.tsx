@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-export type RequestItem = {
+export type RequestDetailItem = {
   id: number;
   title: string;
   subtitle: string;
@@ -11,7 +11,7 @@ export type RequestItem = {
 
 type RequestDetailModalProps = {
   open: boolean;
-  request: RequestItem | null;
+  request: RequestDetailItem | null;
   onClose: () => void;
 };
 
@@ -54,7 +54,9 @@ export default function RequestDetailModal({
             <p className="text-sm uppercase tracking-[0.2em] text-neutral-500">
               Song Request
             </p>
-            <h2 className="mt-2 text-2xl font-semibold text-white">{request.title}</h2>
+            <h2 className="mt-2 text-2xl font-semibold text-white">
+              {request.title}
+            </h2>
             <p className="mt-2 text-base text-neutral-300">{request.subtitle}</p>
           </div>
 

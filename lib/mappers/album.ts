@@ -3,7 +3,7 @@ import type { Album, TrackDP } from "@/lib/types";
 
 type TrackJoinRow = {
   position: number;
-  tracks: TrackDP[]; 
+  tracks: TrackDP | TrackDP[] | null;
 };
 
 type PlaylistRow = {
@@ -39,6 +39,8 @@ export function mapPlaylistRowToAlbum(row: PlaylistRow): Album {
 export function mapPlaylistTracks(playlistTracks: TrackJoinRow[] | null | undefined): TrackDP[] {
   if (!Array.isArray(playlistTracks)) return [];
 
-  return playlistTracks
-    .flatMap((pt) => pt.tracks)
+  return playlistTracks.flatMap((pt) => {
+    if (!pt.tracks) return [];
+    return Array.isArray(pt.tracks) ? pt.tracks : [pt.tracks];
+  });
 }

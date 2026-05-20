@@ -3,7 +3,8 @@ export type PlaylistDP = {
   title: string;
   slug: string;
   thumbnail_path: string;
-  category: string;
+  category_id: number;
+  track_n: number;
   is_asmr: boolean;
 };
 
@@ -15,6 +16,7 @@ export type Track = {
   audio_path: string;
   desc_kim: string;
   desc_lee: string;
+  category_id: number;
   youtube_url: string;
 };
 
@@ -22,7 +24,7 @@ export type TrackDP = {
   id: string | number;
   title: string;
   subtitle: string;
-  is_in_pl: boolean;
+  is_in_pl?: boolean;
 }
 
 export type Album = {

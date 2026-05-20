@@ -1,0 +1,509 @@
+.page {
+  min-height: 100vh;
+  background: #050505;
+  color: #f5f5f5;
+}
+
+.container {
+  margin: 0 auto;
+}
+
+.article {
+  padding: 8px 0 28px;
+}
+
+.header {
+  margin-bottom: 22px;
+}
+
+.title {
+  font-size: clamp(20px, 4vw, 30px);
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.metaRow,
+.metaLeft,
+.metaRight,
+.countInner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.metaRow {
+  justify-content: space-between;
+  margin: 10px 0 15px;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 14px;
+}
+
+.author,
+.commentNickname {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.dot {
+  color: rgba(255, 255, 255, 0.28);
+}
+
+.body {
+  font-size: 16px;
+  line-height: 1.95;
+  color: rgba(255, 255, 255, 0.9);
+  word-break: keep-all;
+}
+
+.filmSection {
+  position: relative;
+  margin: 0 0 10px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #000000;
+}
+
+.filmScroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.filmScroll::-webkit-scrollbar {
+  display: none;
+}
+
+.filmImageTrack {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 360px;
+}
+
+.filmImageItem {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 320px;
+  overflow: hidden;
+  background: #0d0d0d;
+  border-radius: 10px;
+}
+
+.filmPhotoImage {
+  display: block;
+  width: auto;
+  height: 100%;
+  object-fit: contain;
+  background: #0d0d0d;
+}
+
+.filmFade {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 3;
+  width: 20px;
+  pointer-events: none;
+}
+
+.filmFadeLeft {
+  left: 0;
+  background: linear-gradient(to right, rgba(0, 0, 0, 0.78), transparent);
+}
+
+.filmFadeRight {
+  right: 0;
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.78), transparent);
+}
+
+.countSection {
+  padding: 20px 0 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.postLikeButton,
+.countMetric {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.postLikeButton {
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.postLikeButton:hover {
+  color: #ffffff;
+}
+
+.postLikeButton:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.postLikeIcon {
+  color: rgba(255, 255, 255, 0.55);
+  transition: color 0.2s ease;
+}
+
+.postLikeButton:hover .postLikeIcon {
+  color: #f87171;
+}
+
+.postLikeIconActive {
+  color: #ef4444;
+  fill: #ef4444;
+}
+
+.countMetric svg {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.commentSection {
+  padding: 28px 0 12px;
+}
+
+.allPostsSection h2 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.commentComposer {
+  display: grid;
+  grid-template-columns: 1fr 110px;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.commentComposer textarea {
+  width: 100%;
+  min-height: 100px;
+  resize: vertical;
+  padding: 16px;
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  color: #fff;
+  font-size: 15px;
+  line-height: 1.7;
+  outline: none;
+}
+
+.replyComposer textarea {
+  width: 100%;
+  min-height: 58px;
+  resize: vertical;
+  padding: 12px 14px;
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.55;
+  outline: none;
+}
+
+.commentComposer textarea:focus,
+.replyComposer textarea:focus {
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.commentComposer button,
+.replyComposerButtons button,
+.commentActions button {
+  border: none;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.commentComposer button,
+.replyComposerButtons button:not(.ghostButton) {
+  padding: 0 14px;
+  background: #f1f1f1;
+  border-radius: 12px;
+  color: #111;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.commentComposer button:hover,
+.replyComposerButtons button:not(.ghostButton):hover {
+  transform: translateY(-1px);
+}
+
+.emptyComments {
+  padding: 32px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.52);
+}
+
+.commentBlock {
+  padding: 22px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.commentCard {
+  padding: 2px 0 0;
+}
+
+.replyCard {
+  padding: 0;
+}
+
+.commentMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 13px;
+}
+
+.commentContent {
+  font-size: 15px;
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.9);
+  word-break: keep-all;
+}
+
+.commentActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.commentActions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 8px;
+  background: transparent;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+}
+
+.commentActions button:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.activeAction {
+  color: #ffffff !important;
+}
+
+.commentLikeIcon {
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 0.2s ease;
+}
+
+.commentActions button:hover .commentLikeIcon {
+  color: #f87171;
+}
+
+.commentLikeIconActive {
+  color: #ef4444;
+  fill: #ef4444;
+}
+
+.replyToggleButton {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.replyToggleButton:hover {
+  color: rgba(255, 255, 255, 0.86) !important;
+}
+
+.replyThread {
+  margin-top: 16px;
+  margin-left: 24px;
+  padding-left: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.replyList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.replyItem {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.replyArrow {
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.replyComposer {
+  padding: 16px 0 0 36px;
+}
+
+.replyComposer textarea {
+  min-height: 54px;
+  max-height: 220px;
+  overflow-y: auto;
+  resize: none;
+  field-sizing: content;
+  padding: 12px 0;
+  background: transparent;
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0;
+}
+
+.replyComposer textarea:focus {
+  border-top-color: rgba(255, 255, 255, 0.36);
+  border-bottom-color: rgba(255, 255, 255, 0.36);
+}
+
+.replyComposerButtons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.replyComposerButtons button {
+  padding: 6px 4px;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0;
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.replyComposerButtons button:hover {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.ghostButton {
+  padding: 10px 14px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.allPostsSection {
+  margin-top: 48px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.allPostsTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.backToList {
+  color: rgba(255, 255, 255, 0.62);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.backToList:hover {
+  color: #fff;
+}
+
+.allPostsList {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.allPostRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.82);
+  text-decoration: none;
+  transition: 0.2s ease;
+}
+
+.allPostRow:hover {
+  background: rgba(255, 255, 255, 0.02);
+  color: #fff;
+}
+
+.currentPostRow {
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.allPostTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.allPostDate {
+  flex: 0 0 auto;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 13px;
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: 40px 16px 84px;
+  }
+
+  .commentComposer {
+    grid-template-columns: 1fr;
+  }
+
+  .filmImageTrack {
+    gap: 12px;
+    min-height: 260px;
+    padding: 12px 0;
+  }
+
+  .filmImageItem {
+    height: 220px;
+    border-radius: 8px;
+  }
+
+  .replyList {
+    margin-left: 0;
+  }
+
+  .replyThread {
+    margin-left: 8px;
+    padding-left: 8px;
+  }
+
+  .replyComposer {
+    padding-left: 0;
+  }
+
+  .allPostRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}

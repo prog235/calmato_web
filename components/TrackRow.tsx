@@ -12,6 +12,7 @@ type Track = {
   audio_path: string;
   desc_kim: string;
   desc_lee: string;
+  category_id: number;
   youtube_url: string;
 }
 
@@ -99,7 +100,7 @@ export default function TrackRow({ track }: Props) {
           </motion.div>
 
 
-          <div className="min-w-0">
+          <div className="min-w-0 space-y-1 pl-1">
             <h3 className="text-md font-semibold truncate">{track.title}</h3>
             {track.subtitle && <p className="text-sm subtext truncate">{track.subtitle}</p>}
           </div>

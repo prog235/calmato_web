@@ -2,12 +2,15 @@
 import type { GetServerSideProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import Image from "next/image";
+import { getImage } from "@/lib/getUrl";
+import heroStyles from "@/styles/communityHero.module.css";
 
 import PostCard from "@/components/PostCard";
 import CommunityTabs from "@/components/CommunityTabs";
+import LoginRequiredModal from "@/components/LoginRequiredModal";
 import { supabaseServerForGSSP } from "@/lib/supabaseGSSP";
 import {
   BOARD_PAGE_SIZE,
@@ -30,22 +33,20 @@ type CardVM = {
   likeCount: number;
   commentCount: number;
   viewCount: number;
+  initialLiked: boolean;
 
   backgroundImageUrl?: string | null;
 };
 
 type BoardPageProps = {
-  loginRequired: boolean;
-  next?: string;
-
+  isLoggedIn: boolean;
   cards: CardVM[];
   page: number;
   totalPages: number;
   q: string;
 };
 
-const REQUEST_BANNER_SRC = "/Group 1954.jpg"
-
+const REQUEST_BANNER_SRC = getImage("assets", "banners/community_banner.jpg");
 const POST_IMAGES_BUCKET = "post-images";
 
 /**
@@ -54,20 +55,17 @@ const POST_IMAGES_BUCKET = "post-images";
 const PROFILES_FK_NAME = "posts_user_id_fkey";
 
 function clampExcerpt(content: string) {
-  return (content ?? "").replace(/\s+/g, " ").trim();
+  return (content ?? "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 export default function BoardPage(props: BoardPageProps) {
   const router = useRouter();
   const [search, setSearch] = useState(props.q ?? "");
-
-  useEffect(() => {
-    if (!props.loginRequired) return;
-
-    alert("로그인이 필요한 페이지입니다.");
-    const next = props.next ?? "/community/board";
-    router.replace(`/login?next=${encodeURIComponent(next)}`);
-  }, [props.loginRequired, props.next, router]);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
 
   const pages = useMemo(() => {
     const arr: number[] = [];
@@ -91,15 +89,11 @@ export default function BoardPage(props: BoardPageProps) {
     router.push({ pathname: "/community/board", query });
   }
 
-  if (props.loginRequired) {
-    return (
-      <>
-        <Head>
-          <title>Calmato | Community</title>
-        </Head>
-        <div className="min-h-screen bg-black text-white" />
-      </>
-    );
+  function handleWriteClick(e: React.MouseEvent<HTMLAnchorElement>) {
+    if (props.isLoggedIn) return;
+
+    e.preventDefault();
+    setLoginModalOpen(true);
   }
 
   return (
@@ -110,32 +104,34 @@ export default function BoardPage(props: BoardPageProps) {
 
       <div className="min-h-screen bg-black text-white">
         <div className="mb-16 px-8 sm:px-12 md:px-16">
-          <section className="heroSection">
-            <div className="heroImageWrap">
+          <section className={heroStyles.heroSection}>
+            <div className={heroStyles.heroImageWrap}>
               <Image
                 src={REQUEST_BANNER_SRC}
                 alt="Track request banner"
                 fill
                 priority
-                className="heroImage"
+                className={heroStyles.heroImage}
               />
-              <div className="heroOverlay" />
-              <div className="heroContent">
+              <div className={heroStyles.heroOverlay} />
+              <div className={heroStyles.heroContent}>
                 <h1>Community</h1>
+                <div className="mx-auto mb-4 h-px w-64 bg-gradient-to-r from-transparent via-white/80 to-transparent" />
                 <p>여러분이 간직했던 마음을 나누는 공간입니다</p>
                 <p>천천히 이야기를 남겨 주세요</p>
               </div>
             </div>
           </section>
 
-          <section className="tabsSection">
+          <section className={heroStyles.tabsSection}>
             <CommunityTabs current="board" />
           </section>
 
-          <div className="mt-10 flex items-end justify-between gap-6 pb-3">
+          <div className="mt-5 flex items-end justify-between gap-6">
             <div>
               <Link
                 href="/community/board/write"
+                onClick={handleWriteClick}
                 className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-sm text-white/80 ring-1 ring-white/10 transition hover:bg-white/15"
               >
                 게시물 작성하기
@@ -163,11 +159,12 @@ export default function BoardPage(props: BoardPageProps) {
             </form>
           </div>
 
-          <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {props.cards.map((c) => (
               <PostCard
                 key={c.id}
                 href={c.href}
+                postId={c.id}
                 isLocked={c.isLocked}
                 nickname={c.nickname}
                 createdAt={c.createdAt}
@@ -176,6 +173,7 @@ export default function BoardPage(props: BoardPageProps) {
                 likeCount={c.likeCount}
                 commentCount={c.commentCount}
                 viewCount={c.viewCount}
+                initialLiked={c.initialLiked}
                 backgroundImageUrl={c.backgroundImageUrl}
               />
             ))}
@@ -220,6 +218,12 @@ export default function BoardPage(props: BoardPageProps) {
           </div>
         </div>
       </div>
+
+      <LoginRequiredModal
+        open={loginModalOpen}
+        onClose={() => setLoginModalOpen(false)}
+        nextPath="/community/board/write"
+      />
     </>
   );
 }
@@ -237,20 +241,7 @@ export const getServerSideProps: GetServerSideProps<BoardPageProps> = async (ctx
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    return {
-      props: {
-        loginRequired: true,
-        next: ctx.resolvedUrl || "/community/board",
-        cards: [],
-        page: 1,
-        totalPages: 1,
-        q,
-      },
-    };
-  }
-
-  const viewerUserId = user.id;
+  const viewerUserId = user?.id ?? null;
 
   const countRes = await countBoardPosts(supabase, { q });
   const totalCount = countRes.count ?? 0;
@@ -269,7 +260,7 @@ export const getServerSideProps: GetServerSideProps<BoardPageProps> = async (ctx
 
     return {
       props: {
-        loginRequired: false,
+        isLoggedIn: Boolean(user),
         cards: [],
         page: safePage,
         totalPages,
@@ -279,6 +270,23 @@ export const getServerSideProps: GetServerSideProps<BoardPageProps> = async (ctx
   }
 
   const posts = (data ?? []) as BoardPostRow[];
+  const postIds = posts.map((p) => p.id);
+
+  let likedPostIdSet = new Set<number>();
+
+  if (viewerUserId && postIds.length > 0) {
+    const { data: likes, error: likesError } = await supabase
+      .from("post_likes")
+      .select("post_id")
+      .eq("user_id", viewerUserId)
+      .in("post_id", postIds);
+
+    if (likesError) {
+      console.error("[BoardPage] post_likes error:", likesError);
+    }
+
+    likedPostIdSet = new Set((likes ?? []).map((like) => like.post_id));
+  }
 
   const cards: CardVM[] = posts.map((p) => {
     const isLocked = Boolean(p.is_secret) && p.user_id !== viewerUserId;
@@ -295,7 +303,7 @@ export const getServerSideProps: GetServerSideProps<BoardPageProps> = async (ctx
 
     return {
       id: p.id,
-      href: `/community/posts/${p.id}`,
+      href: `/community/board/${p.id}`,
       isLocked,
       nickname,
       createdAt: p.created_at,
@@ -304,13 +312,14 @@ export const getServerSideProps: GetServerSideProps<BoardPageProps> = async (ctx
       likeCount,
       commentCount,
       viewCount,
+      initialLiked: likedPostIdSet.has(p.id),
       backgroundImageUrl: isLocked ? null : backgroundImageUrl,
     };
   });
 
   return {
     props: {
-      loginRequired: false,
+      isLoggedIn: Boolean(user),
       cards,
       page: safePage,
       totalPages,

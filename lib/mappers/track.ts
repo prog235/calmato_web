@@ -1,12 +1,17 @@
-import { Track } from "@/lib/types"
+import type { Track } from "@/lib/types";
 
 type TrackRow = {
   position: number;
-  tracks: Track[];
+  tracks: Track | Track[] | null;
+};
+
+function normalizeJoinedTracks(tracks: Track | Track[] | null): Track[] {
+  if (!tracks) return [];
+  return Array.isArray(tracks) ? tracks : [tracks];
 }
 
-export function mapTracks (row: TrackRow[] | null | undefined): Track[] {
-  if (!Array.isArray(row)) return [];
+export function mapTracks(rows: TrackRow[] | null | undefined): Track[] {
+  if (!Array.isArray(rows)) return [];
 
-  return row.flatMap(t => t.tracks)
+  return rows.flatMap((row) => normalizeJoinedTracks(row.tracks));
 }

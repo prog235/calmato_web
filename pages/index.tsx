@@ -1,7 +1,9 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
-import bgImage from "@/public/bgImage.jpeg"; 
 import bgText from "@/public/home_text.png";
+import { getImage } from "@/lib/getUrl";
+
+const homeImage = getImage("assets", "home.jpg");
 
 export default function Home() {
   return (
@@ -14,7 +16,7 @@ export default function Home() {
         className="absolute inset-0"
       >
         <Image
-          src={bgImage}
+          src={homeImage}
           alt="Calmato Background"
           fill
           className="object-top"
@@ -23,7 +25,7 @@ export default function Home() {
       </motion.div>
       {/* 중앙 Quote */}
       <motion.div
-        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+        className="absolute top-2/5 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
         initial={{ opacity: 0, y: 20 }} // 시작 상태: 투명, 20px 아래
         animate={{ opacity: 1, y: 0 }}  // 끝 상태: 불투명, 제자리
         transition={{ duration: 1, ease: "easeOut" }} // 애니메이션 속도
@@ -39,7 +41,7 @@ export default function Home() {
 
       {/* 하단 Calmato 소개 */}
       <motion.div
-        className="absolute bottom-8 w-full flex flex-col items-center space-y-2 text-gray-200 text-center text-sm"
+        className="absolute bottom-12 w-full flex flex-col items-center space-y-2 text-gray-200 text-center text-sm"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1, ease: "easeOut", delay: 0.8 }}

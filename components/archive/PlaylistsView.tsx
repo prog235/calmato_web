@@ -4,48 +4,55 @@ import HorizontalCarousel from "@/components/archive/HorizontalCarousel";
 import { getThumbnailUrl } from "@/lib/getUrl";
 import type { PlaylistDP } from "@/lib/types";
 
+type ArchiveCategory = {
+  id: number;
+  name: string;
+  image_path?: string | null;
+  created_at?: string | null;
+};
+
 type Props = {
+  categories: ArchiveCategory[];
   playlists: PlaylistDP[];
-  // "playlist" => all, "original" => !is_asmr
   filter: "playlist" | "original";
 };
 
-export default function PlaylistsView({ playlists, filter }: Props) {
+export default function PlaylistsView({
+  categories,
+  playlists,
+  filter,
+}: Props) {
   const filtered =
     filter === "original" ? playlists.filter((p) => !p.is_asmr) : playlists;
 
-  // group by category
-  const grouped = (() => {
-    const map = new Map<string, PlaylistDP[]>();
+  const grouped = categories
+    .slice()
+    .sort((a, b) => Number(a.id) - Number(b.id))
+    .map((category) => {
+      const items = filtered
+        .filter((pl) => Number(pl.category_id) === Number(category.id))
+        .sort((a, b) => Number(a.id) - Number(b.id));
 
-    for (const pl of filtered) {
-      const key = pl.category?.trim() || "Etc";
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(pl);
-    }
-
-    // category 내 정렬: id 오름차순
-    for (const [key, arr] of map.entries()) {
-      arr.sort((a, b) => Number(a.id) - Number(b.id));
-      map.set(key, arr);
-    }
-
-    const sortedKeys = Array.from(map.keys()).sort((a, b) => a.localeCompare(b));
-    return sortedKeys.map((k) => ({ category: k, items: map.get(k)! }));
-  })();
+      return {
+        category,
+        items,
+      };
+    })
+    .filter(({ items }) => items.length > 0);
 
   return (
     <div className="space-y-10">
       {grouped.map(({ category, items }) => (
-        <section key={category}>
+        <section key={category.id}>
           <div className="mb-4 flex items-end justify-between">
-            <h2 className="text-[16px] font-semibold">{category}</h2>
+            <h2 className="text-[16px] font-semibold">{category.name}</h2>
           </div>
 
           <HorizontalCarousel>
             {items.map((pl) => {
               const thumb =
-                getThumbnailUrl(pl.thumbnail_path) ?? "/thumbnails/default.png";
+                getThumbnailUrl(pl.thumbnail_path) ??
+                "/thumbnails/default.png";
 
               return (
                 <Link key={pl.slug} href={`/archive/${pl.slug}`}>
@@ -80,9 +87,13 @@ export default function PlaylistsView({ playlists, filter }: Props) {
                               "linear-gradient(to top, rgba(0,0,0,0.75), rgba(0,0,0,0))",
                           }}
                         />
-                        <div className="relative">
+                        <div className="relative flex flex-col items-center text-center">
                           <p className="text-white text-[13px] font-semibold leading-snug">
                             {pl.title.replace("Playlist", "").trim()}
+                          </p>
+
+                          <p className="text-white/70 text-[12px] mt-1">
+                            {pl.track_n} Tracks
                           </p>
                         </div>
                       </div>

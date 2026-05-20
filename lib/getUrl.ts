@@ -20,3 +20,12 @@ export const getAudioUrl = (path: string | null) => {
 
   return data.publicUrl;
 };
+
+export const getImage = (bucket: string, path: string) => {
+
+  const { data } = supabase.storage
+    .from(bucket)
+    .getPublicUrl(path);
+
+    return data.publicUrl;
+}

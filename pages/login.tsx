@@ -1,7 +1,7 @@
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { supabase } from "@/lib/supabaseClient";
 
@@ -21,6 +21,20 @@ function normalizeAuthError(message?: string): AuthErrorCode {
   return "unknown";
 }
 
+function getSafeNextPath(next: string | string[] | undefined) {
+  const raw = Array.isArray(next) ? next[0] : next;
+
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) {
+    return "/";
+  }
+
+  if (raw.startsWith("/login")) {
+    return "/";
+  }
+
+  return raw;
+}
+
 export default function LoginPage() {
   const router = useRouter();
 
@@ -33,6 +47,33 @@ export default function LoginPage() {
   const canSubmit = useMemo(() => {
     return email.trim().length > 0 && password.trim().length > 0 && !loading;
   }, [email, password, loading]);
+
+  const nextPath = useMemo(
+    () => getSafeNextPath(router.query.next),
+    [router.query.next]
+  );
+
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    let cancelled = false;
+
+    async function redirectIfAlreadyLoggedIn() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!cancelled && session) {
+        await router.replace(nextPath);
+      }
+    }
+
+    void redirectIfAlreadyLoggedIn();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [nextPath, router]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,7 +118,7 @@ export default function LoginPage() {
         return;
       }
 
-      await router.replace("/profile");
+      await router.replace(nextPath);
     } catch (err) {
       console.error("login unexpected error:", err);
       setErrorText("로그인 중 오류가 발생했습니다. 콘솔 로그를 확인해주세요.");
@@ -98,7 +139,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${origin}/profile`,
+          redirectTo: `${origin}/login?next=${encodeURIComponent(nextPath)}`,
         },
       });
 

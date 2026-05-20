@@ -1,0 +1,65 @@
+.heroSection {
+  margin: 0 auto;
+}
+
+.tabsSection {
+  margin: 28px auto 0;
+}
+
+.heroImageWrap {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  border-radius: 2px;
+}
+
+.heroImage {
+  object-fit: cover;
+}
+
+.heroOverlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(0, 0, 0, 0.45) 0%,
+    rgba(0,0,0,0.15) 60%,
+    rgba(0,0,0,0.01) 100%
+  );
+}
+
+.heroContent {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transform: translateY(-8px);
+}
+
+.heroContent h1 {
+  margin-bottom: 12px;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.heroContent p {
+  margin: 2px 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+@media (max-width: 720px) {
+  .heroImageWrap {
+    height: 170px;
+  }
+
+  .heroContent h1 {
+    font-size: 26px;
+  }
+}

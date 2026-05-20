@@ -1,6 +1,6 @@
-// pages/community/request.tsx
 import Head from "next/head";
 import Image from "next/image";
+import { getImage } from "@/lib/getUrl";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
@@ -8,14 +8,19 @@ import { useRouter } from "next/router";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import CommunityTabs from "@/components/CommunityTabs";
-import RequestCreateModal from "@/components/request/RequestCreateModal";
+import LoginRequiredModal from "@/components/LoginRequiredModal";
+import RequestCreateModal, {
+  type CreatedRequestRow,
+} from "@/components/request/RequestCreateModal";
 import RequestDetailModal from "@/components/request/RequestDetailModal";
 
 import { supabase } from "@/lib/supabaseClient";
 import { supabaseServerForGSSP } from "@/lib/supabaseGSSP";
+import heroStyles from "@/styles/communityHero.module.css";
+import styles from "@/styles/requestPage.module.css";
 
 const PAGE_SIZE = 10;
-const REQUEST_BANNER_SRC = "/Group 1954.jpg";
+const REQUEST_BANNER_SRC = getImage("assets", "banners/community_banner.jpg")
 
 type RawRequestRow = {
   id: number;
@@ -44,7 +49,7 @@ export type RequestItem = {
 };
 
 type PageProps = {
-  currentUserId: string;
+  currentUserId: string | null;
   topRequests: RequestItem[];
   listRequests: RequestItem[];
   likedRequestIds: number[];
@@ -81,13 +86,12 @@ async function attachNicknames(
     .select("id, nickname")
     .in("id", userIds);
 
-  if (profilesError) {
-    throw profilesError;
-  }
-
   const profileMap = new Map<string, string>();
-  for (const profile of (profilesData as ProfileRow[] | null) ?? []) {
-    profileMap.set(profile.id, profile.nickname ?? "Unknown");
+
+  if (!profilesError) {
+    for (const profile of (profilesData as ProfileRow[] | null) ?? []) {
+      profileMap.set(profile.id, profile.nickname ?? "Unknown");
+    }
   }
 
   return rows.map((row) => ({
@@ -119,7 +123,9 @@ async function getLikedRequestIds(
     throw error;
   }
 
-  return ((data as { request_id: number }[] | null) ?? []).map((row) => row.request_id);
+  return ((data as { request_id: number }[] | null) ?? []).map(
+    (row) => row.request_id
+  );
 }
 
 async function getTopRequests(db: SupabaseClient): Promise<RawRequestRow[]> {
@@ -137,7 +143,10 @@ async function getTopRequests(db: SupabaseClient): Promise<RawRequestRow[]> {
   return (data as RawRequestRow[] | null) ?? [];
 }
 
-async function countRemainingRequests(db: SupabaseClient, excludedIds: number[]) {
+async function countRemainingRequests(
+  db: SupabaseClient,
+  excludedIds: number[]
+) {
   let query = db.from("requests").select("id", { count: "exact", head: true });
 
   if (excludedIds.length > 0) {
@@ -186,17 +195,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     data: { user },
   } = await db.auth.getUser();
 
-  if (!user) {
-    const next = typeof ctx.resolvedUrl === "string" ? ctx.resolvedUrl : "/community/request";
-    return {
-      redirect: {
-        destination: `/login?next=${encodeURIComponent(next)}`,
-        permanent: false,
-      },
-    };
-  }
-
-  const rawPage = Array.isArray(ctx.query.page) ? ctx.query.page[0] : ctx.query.page;
+  const rawPage = Array.isArray(ctx.query.page)
+    ? ctx.query.page[0]
+    : ctx.query.page;
   const currentPage = Math.max(1, Number(rawPage ?? "1") || 1);
 
   const rawTopRequests = await getTopRequests(db);
@@ -206,19 +207,27 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
   const totalPages = Math.max(1, Math.ceil(remainingCount / PAGE_SIZE));
   const clampedPage = Math.min(currentPage, totalPages);
 
-  const rawListRequests = await getRemainingRequestsPage(db, topIds, clampedPage);
+  const rawListRequests = await getRemainingRequestsPage(
+    db,
+    topIds,
+    clampedPage
+  );
 
   const [topRequests, listRequests] = await Promise.all([
     attachNicknames(db, rawTopRequests),
     attachNicknames(db, rawListRequests),
   ]);
 
-  const allVisibleIds = [...topRequests, ...listRequests].map((item) => item.id);
-  const likedRequestIds = await getLikedRequestIds(db, user.id, allVisibleIds);
+  const allVisibleIds = [...topRequests, ...listRequests].map(
+    (item) => item.id
+  );
+  const likedRequestIds = user
+    ? await getLikedRequestIds(db, user.id, allVisibleIds)
+    : [];
 
   return {
     props: {
-      currentUserId: user.id,
+      currentUserId: user?.id ?? null,
       topRequests,
       listRequests,
       likedRequestIds,
@@ -244,22 +253,33 @@ function RequestTopCard({
   onOpenDetail,
 }: RequestCardProps) {
   return (
-    <article className="topCard" onClick={() => onOpenDetail(item)} role="button" tabIndex={0}>
-      <div className="topCardMeta">
+    <article
+      className={styles.topCard}
+      onClick={() => onOpenDetail(item)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpenDetail(item);
+        }
+      }}
+    >
+      <div className={styles.topCardMeta}>
         <span className="writer">{item.nickname}</span>
         <span className="date">{formatDate(item.created_at)}</span>
       </div>
 
-      <h3 className="topCardTitle">{item.title}</h3>
-      <p className="topCardSubtitle">{item.subtitle}</p>
-      <p className="topCardBody">{excerpt(item.content, 120)}</p>
+      <h3 className={styles.topCardTitle}>{item.title}</h3>
+      <p className={styles.topCardSubtitle}>{item.subtitle}</p>
+      <p className={styles.topCardBody}>{excerpt(item.content, 120)}</p>
 
-      <div className="topCardBottom">
-        <span className="badge">Top Request</span>
+      <div className={styles.topCardBottom}>
+        <span className={styles.badge}>Top Request</span>
 
         <button
           type="button"
-          className={`likeButton ${liked ? "liked" : ""}`}
+          className={`${styles.likeButton} ${liked ? styles.liked : ""}`}
           onClick={(e) => {
             e.stopPropagation();
             void onToggleLike(item.id);
@@ -267,7 +287,7 @@ function RequestTopCard({
           disabled={busy}
           aria-label={liked ? "좋아요 취소" : "좋아요"}
         >
-          <span className="heart">{liked ? "♥" : "♡"}</span>
+          <span className={styles.heart}>{liked ? "♥" : "♡"}</span>
           <span>{item.like_count.toLocaleString()}</span>
         </button>
       </div>
@@ -292,23 +312,27 @@ function RequestListRow({
 }: RequestListRowProps) {
   return (
     <tr>
-      <td className="titleCell">
-        <button type="button" className="titleLinkButton" onClick={() => onOpenDetail(item)}>
-          <span className="titleLink">{item.title}</span>
-          <span className="titleSub">{item.subtitle}</span>
+      <td className={styles.titleCell}>
+        <button
+          type="button"
+          className={styles.titleLinkButton}
+          onClick={() => onOpenDetail(item)}
+        >
+          <span className={styles.titleLink}>{item.title}</span>
+          <span className={styles.titleSub}>{item.subtitle}</span>
         </button>
       </td>
       <td>{item.nickname}</td>
       <td>{formatDate(item.created_at)}</td>
-      <td className="likeCell">
+      <td className={styles.likeCell}>
         <button
           type="button"
-          className={`likeButton ${liked ? "liked" : ""}`}
+          className={`${styles.likeButton} ${liked ? styles.liked : ""}`}
           onClick={() => void onToggleLike(item.id)}
           disabled={busy}
           aria-label={liked ? "좋아요 취소" : "좋아요"}
         >
-          <span className="heart">{liked ? "♥" : "♡"}</span>
+          <span className={styles.heart}>{liked ? "♥" : "♡"}</span>
           <span>{item.like_count.toLocaleString()}</span>
         </button>
       </td>
@@ -326,13 +350,21 @@ export default function RequestPage({
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const router = useRouter();
 
-  const [topRequests, setTopRequests] = useState<RequestItem[]>(initialTopRequests);
-  const [listRequests, setListRequests] = useState<RequestItem[]>(initialListRequests);
-  const [likedSet, setLikedSet] = useState<Set<number>>(new Set(likedRequestIds));
+  const [topRequests, setTopRequests] =
+    useState<RequestItem[]>(initialTopRequests);
+  const [listRequests, setListRequests] =
+    useState<RequestItem[]>(initialListRequests);
+  const [likedSet, setLikedSet] = useState<Set<number>>(
+    new Set(likedRequestIds)
+  );
   const [busyId, setBusyId] = useState<number | null>(null);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<RequestItem | null>(null);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<RequestItem | null>(
+    null
+  );
+  const [totalPagesState, setTotalPagesState] = useState(totalPages);
 
   useEffect(() => {
     setTopRequests(initialTopRequests);
@@ -340,9 +372,13 @@ export default function RequestPage({
     setLikedSet(new Set(likedRequestIds));
   }, [initialTopRequests, initialListRequests, likedRequestIds]);
 
-  const pageNumbers = useMemo(() => {
-    return Array.from({ length: totalPages }, (_, idx) => idx + 1);
+  useEffect(() => {
+    setTotalPagesState(totalPages);
   }, [totalPages]);
+
+  const pageNumbers = useMemo(() => {
+    return Array.from({ length: totalPagesState }, (_, idx) => idx + 1);
+  }, [totalPagesState]);
 
   const updateLikeCountInState = (requestId: number, delta: 1 | -1) => {
     setTopRequests((prev) =>
@@ -368,13 +404,123 @@ export default function RequestPage({
     );
   };
 
-  const refreshCurrentPage = async () => {
-    await router.replace(router.asPath);
-  };
+  async function fetchClientTopRequests() {
+    const { data, error } = await supabase
+      .from("requests")
+      .select("id, user_id, title, subtitle, content, created_at, like_count")
+      .order("like_count", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(3);
+
+    if (error) throw error;
+    return (data as RawRequestRow[] | null) ?? [];
+  }
+
+  async function fetchClientRemainingCount(excludedIds: number[]) {
+    let query = supabase
+      .from("requests")
+      .select("id", { count: "exact", head: true });
+
+    if (excludedIds.length > 0) {
+      query = query.not("id", "in", `(${excludedIds.join(",")})`);
+    }
+
+    const { count, error } = await query;
+    if (error) throw error;
+    return count ?? 0;
+  }
+
+  async function fetchClientRemainingPage(excludedIds: number[], page: number) {
+    const safePage = Math.max(1, page);
+    const from = (safePage - 1) * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+
+    let query = supabase
+      .from("requests")
+      .select("id, user_id, title, subtitle, content, created_at, like_count")
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (excludedIds.length > 0) {
+      query = query.not("id", "in", `(${excludedIds.join(",")})`);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data as RawRequestRow[] | null) ?? [];
+  }
+
+  async function refreshVisibleData() {
+    try {
+      const rawTopRequests = await fetchClientTopRequests();
+      const topIds = rawTopRequests.map((row) => row.id);
+
+      const remainingCount = await fetchClientRemainingCount(topIds);
+      const nextTotalPages = Math.max(1, Math.ceil(remainingCount / PAGE_SIZE));
+      const clampedPage = Math.min(currentPage, nextTotalPages);
+
+      const rawListRequests = await fetchClientRemainingPage(topIds, clampedPage);
+
+      const [nextTopRequests, nextListRequests] = await Promise.all([
+        attachNicknames(supabase, rawTopRequests),
+        attachNicknames(supabase, rawListRequests),
+      ]);
+
+      const allVisibleIds = [...nextTopRequests, ...nextListRequests].map(
+        (item) => item.id
+      );
+
+      const nextLikedIds = currentUserId
+        ? await getLikedRequestIds(supabase, currentUserId, allVisibleIds)
+        : [];
+
+      setTopRequests(nextTopRequests);
+      setListRequests(nextListRequests);
+      setLikedSet(new Set(nextLikedIds));
+      setTotalPagesState(nextTotalPages);
+
+      setSelectedRequest((prev) => {
+        if (!prev) return null;
+        const found =
+          nextTopRequests.find((item) => item.id === prev.id) ??
+          nextListRequests.find((item) => item.id === prev.id);
+        return found ?? prev;
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function handleCreated(created: CreatedRequestRow) {
+    try {
+      const [createdItem] = await attachNicknames(supabase, [created]);
+      if (!createdItem) return;
+
+      if (currentPage === 1) {
+        setListRequests((prev) => {
+          const withoutDuplicate = prev.filter(
+            (item) => item.id !== createdItem.id
+          );
+          return [createdItem, ...withoutDuplicate].slice(0, PAGE_SIZE);
+        });
+
+        setLikedSet((prev) => {
+          const next = new Set(prev);
+          next.delete(createdItem.id);
+          return next;
+        });
+      }
+
+      void refreshVisibleData();
+    } catch (error) {
+      console.error(error);
+      void refreshVisibleData();
+    }
+  }
 
   const toggleLike = async (requestId: number) => {
     if (!currentUserId) {
-      await router.push(`/login?next=${encodeURIComponent(router.asPath)}`);
+      setLoginModalOpen(true);
       return;
     }
 
@@ -406,13 +552,17 @@ export default function RequestPage({
 
         if (deleteLikeError) throw deleteLikeError;
       } else {
-        const { error: insertLikeError } = await supabase.from("request_likes").insert({
-          request_id: requestId,
-          user_id: currentUserId,
-        });
+        const { error: insertLikeError } = await supabase
+          .from("request_likes")
+          .insert({
+            request_id: requestId,
+            user_id: currentUserId,
+          });
 
         if (insertLikeError) throw insertLikeError;
       }
+
+      void refreshVisibleData();
     } catch (error) {
       setLikedSet((prev) => {
         const next = new Set(prev);
@@ -439,41 +589,53 @@ export default function RequestPage({
       </Head>
 
       <main className="mb-16 px-8 sm:px-12 md:px-16">
-        <section className="heroSection">
-          <div className="heroImageWrap">
+        <section className={heroStyles.heroSection}>
+          <div className={heroStyles.heroImageWrap}>
             <Image
               src={REQUEST_BANNER_SRC}
               alt="Track request banner"
               fill
               priority
-              className="heroImage"
+              className={heroStyles.heroImage}
             />
-            <div className="heroOverlay" />
-            <div className="heroContent">
+            <div className={heroStyles.heroOverlay} />
+            <div className={heroStyles.heroContent}>
               <h1>Community</h1>
+              <div className="mx-auto mb-4 h-px w-64 bg-gradient-to-r from-transparent via-white/80 to-transparent" />
               <p>여러분이 간직했던 선곡을 나누는 공간입니다</p>
               <p>천천히 이야기를 남겨 주세요</p>
             </div>
           </div>
         </section>
 
-        <section className="tabsSection">
+        <section className={heroStyles.tabsSection}>
           <CommunityTabs current="request" />
         </section>
 
-        <section className="topSection">
-          <div className="sectionHeader">
+        <section className={styles.topSection}>
+          <div className={styles.sectionHeader}>
             <div>
               <h2>추천이 많이 모인 곡</h2>
               <p>가장 많은 공감을 받은 세 곡을 먼저 보여드립니다.</p>
             </div>
 
-            <button type="button" className="writeButton" onClick={() => setIsCreateModalOpen(true)}>
+            <button
+              type="button"
+              className={styles.writeButton}
+              onClick={() => {
+                if (!currentUserId) {
+                  setLoginModalOpen(true);
+                  return;
+                }
+
+                setIsCreateModalOpen(true);
+              }}
+            >
               곡 신청하기
             </button>
           </div>
 
-          <div className="topGrid">
+          <div className={styles.topGrid}>
             {topRequests.map((item) => (
               <RequestTopCard
                 key={item.id}
@@ -487,14 +649,14 @@ export default function RequestPage({
           </div>
         </section>
 
-        <section className="listSection">
-          <div className="listHeader">
+        <section className={styles.listSection}>
+          <div className={styles.listHeader}>
             <h2>곡 신청 목록</h2>
             <p>Top 3를 제외한 나머지 곡 신청들을 최신순으로 보여줍니다.</p>
           </div>
 
-          <div className="tableWrap">
-            <table className="requestTable">
+          <div className={styles.tableWrap}>
+            <table className={styles.requestTable}>
               <thead>
                 <tr>
                   <th>곡 제목</th>
@@ -517,7 +679,7 @@ export default function RequestPage({
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="emptyRow">
+                    <td colSpan={4} className={styles.emptyRow}>
                       아직 등록된 곡 신청이 없습니다.
                     </td>
                   </tr>
@@ -526,7 +688,7 @@ export default function RequestPage({
             </table>
           </div>
 
-          <nav className="pagination" aria-label="Request pagination">
+          <nav className={styles.pagination} aria-label="Request pagination">
             {pageNumbers.map((page) => {
               const isActive = page === currentPage;
               return (
@@ -536,7 +698,9 @@ export default function RequestPage({
                     pathname: "/community/request",
                     query: { page },
                   }}
-                  className={`pageLink ${isActive ? "active" : ""}`}
+                  className={`${styles.pageLink} ${
+                    isActive ? styles.pageLinkActive : ""
+                  }`}
                 >
                   {page}
                 </Link>
@@ -549,9 +713,7 @@ export default function RequestPage({
       <RequestCreateModal
         open={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onCreated={() => {
-          void refreshCurrentPage();
-        }}
+        onCreated={handleCreated}
       />
 
       <RequestDetailModal
@@ -571,47 +733,12 @@ export default function RequestPage({
         onClose={() => setSelectedRequest(null)}
       />
 
-      <style jsx>{`
-        .titleLinkButton {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 4px;
-          width: 100%;
-          border: 0;
-          background: transparent;
-          padding: 0;
-          text-align: left;
-          cursor: pointer;
-        }
+      <LoginRequiredModal
+        open={loginModalOpen}
+        onClose={() => setLoginModalOpen(false)}
+        nextPath={router.asPath}
+      />
 
-        .titleLink {
-          color: inherit;
-          text-decoration: none;
-          transition: opacity 0.2s ease;
-        }
-
-        .titleLinkButton:hover .titleLink {
-          opacity: 0.8;
-        }
-
-        .titleSub {
-          font-size: 13px;
-          color: rgba(255, 255, 255, 0.55);
-          line-height: 1.4;
-        }
-
-        .topCard {
-          cursor: pointer;
-        }
-
-        .topCardSubtitle {
-          margin-top: 8px;
-          font-size: 14px;
-          line-height: 1.5;
-          color: rgba(255, 255, 255, 0.62);
-        }
-      `}</style>
     </>
   );
 }

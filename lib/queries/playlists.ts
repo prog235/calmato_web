@@ -28,19 +28,18 @@ export function getPlaylistBySlugWithTracks(
       desc_kim,
       desc_lee,
       youtube_url,
+      category_id,
       playlist_tracks (
         position,
         tracks!inner (
           id, 
           title,
-          subtitle,
-          is_in_pl
+          subtitle
         )
       )
     `
     )
     .eq("slug", slug)
-    .eq("playlist_tracks.tracks.is_in_pl", true)
     .order("position", { foreignTable: "playlist_tracks", ascending: true })
     .maybeSingle();
 }
