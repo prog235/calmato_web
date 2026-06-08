@@ -63,9 +63,19 @@ export default function TrackRow({ track }: Props) {
   useLayoutEffect(() => {
     if (!open || !mounted || !contentRef.current) return;
 
-    naturalH.set(contentRef.current.scrollHeight);
+    naturalH.set(Math.ceil(contentRef.current.getBoundingClientRect().height));
     p.set(1);
-  }, [open, mounted, track.desc_kim, track.desc_lee, track.youtube_url, track.title, track.subtitle, p]);
+  }, [
+    open,
+    mounted,
+    track.desc_kim,
+    track.desc_lee,
+    track.youtube_url,
+    track.title,
+    track.subtitle,
+    naturalH,
+    p,
+  ]);
   
   useEffect(() => {
     const unsub = p.on("change", (v) => {
@@ -158,7 +168,7 @@ export default function TrackRow({ track }: Props) {
             }}
           >
             {/* 실제 콘텐츠: 이 높이를 기준으로 panelH가 계산됨 */}
-            <div ref={contentRef} className="rounded-xl border border-[var(--foreground)]/15 bg-[var(--background)]/30 backdrop-blur-md px-5 py-5 md:px-6 md:py-6">
+            <div ref={contentRef} className="rounded-xl border border-white/15 bg-[var(--background)]/30 backdrop-blur-md px-5 py-5 md:px-6 md:py-6">
               <div className="grid gap-6 md:grid-cols-2">
                 {track.desc_kim && (
                   <div>

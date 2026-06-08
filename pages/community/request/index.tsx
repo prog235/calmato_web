@@ -6,6 +6,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { useRouter } from "next/router";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { Heart, Search } from "lucide-react";
+import { FaUser } from "react-icons/fa6";
 
 import CommunityTabs from "@/components/CommunityTabs";
 import LoginRequiredModal from "@/components/LoginRequiredModal";
@@ -21,6 +23,8 @@ import styles from "@/styles/requestPage.module.css";
 
 const PAGE_SIZE = 10;
 const REQUEST_BANNER_SRC = getImage("assets", "banners/community_banner.jpg")
+const EMPTY_USER_ID = "00000000-0000-0000-0000-000000000000";
+type RequestSort = "latest" | "likes" | "mine";
 
 type RawRequestRow = {
   id: number;
@@ -29,6 +33,7 @@ type RawRequestRow = {
   subtitle: string | null;
   content: string | null;
   created_at: string;
+  upload_date: string | null;
   like_count: number | null;
 };
 
@@ -44,6 +49,7 @@ export type RequestItem = {
   subtitle: string;
   content: string;
   created_at: string;
+  upload_date: string | null;
   like_count: number;
   nickname: string;
 };
@@ -55,6 +61,8 @@ type PageProps = {
   likedRequestIds: number[];
   currentPage: number;
   totalPages: number;
+  q: string;
+  sort: RequestSort;
 };
 
 function formatDate(dateString: string) {
@@ -67,10 +75,82 @@ function formatDate(dateString: string) {
   return `${yyyy}.${mm}.${dd} ${hh}:${mi}`;
 }
 
-function excerpt(text: string, max = 92) {
-  if (!text) return "";
-  if (text.length <= max) return text;
-  return `${text.slice(0, max)}...`;
+function formatUploadDate(uploadDate: string) {
+  const [datePart] = uploadDate.split("T");
+  const [yyyy, mm, dd] = datePart.split("-");
+  return `${yyyy}.${mm}.${dd}`;
+}
+
+function getUploadStatus(uploadDate: string | null) {
+  if (!uploadDate) return null;
+
+  const [datePart] = uploadDate.split("T");
+  const [yyyy, mm, dd] = datePart.split("-").map(Number);
+  if (!yyyy || !mm || !dd) return null;
+
+  const deadline = new Date(yyyy, mm - 1, dd, 20, 0, 0, 0);
+  const uploaded = new Date() >= deadline;
+
+  return {
+    label: uploaded ? "Uploaded" : "Upcoming",
+    date: formatUploadDate(uploadDate),
+    uploaded,
+  };
+}
+
+function getSingleQueryValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+}
+
+function normalizeSearchTerm(value: string) {
+  return value.trim().replace(/[,()]/g, " ");
+}
+
+function normalizeRequestSort(value: string | string[] | undefined): RequestSort {
+  const sort = getSingleQueryValue(value);
+  if (sort === "likes" || sort === "mine") return sort;
+  return "latest";
+}
+
+function buildListQuery(params: { page?: number; q?: string; sort: RequestSort }) {
+  const query: Record<string, string> = {};
+  const q = params.q?.trim() ?? "";
+
+  if (q) query.q = q;
+  if (params.sort !== "latest") query.sort = params.sort;
+  if (params.page && params.page > 1) query.page = String(params.page);
+
+  return query;
+}
+
+function buildRequestSearchOr(q: string, authorIds: string[]) {
+  const term = normalizeSearchTerm(q);
+  if (!term) return null;
+
+  const clauses = [`title.ilike.%${term}%`, `subtitle.ilike.%${term}%`];
+
+  if (authorIds.length > 0) {
+    clauses.push(`user_id.in.(${authorIds.join(",")})`);
+  }
+
+  return clauses.join(",");
+}
+
+async function getMatchingAuthorIds(db: SupabaseClient, q: string) {
+  const term = normalizeSearchTerm(q);
+  if (!term) return [];
+
+  const { data, error } = await db
+    .from("profiles")
+    .select("id")
+    .ilike("nickname", `%${term}%`);
+
+  if (error) {
+    console.error("[RequestPage] profile search error:", error);
+    return [];
+  }
+
+  return ((data as { id: string }[] | null) ?? []).map((row) => row.id);
 }
 
 async function attachNicknames(
@@ -101,6 +181,7 @@ async function attachNicknames(
     subtitle: row.subtitle ?? "",
     content: row.content ?? "",
     created_at: row.created_at,
+    upload_date: row.upload_date ?? null,
     like_count: row.like_count ?? 0,
     nickname: profileMap.get(row.user_id) ?? "Unknown",
   }));
@@ -131,7 +212,7 @@ async function getLikedRequestIds(
 async function getTopRequests(db: SupabaseClient): Promise<RawRequestRow[]> {
   const { data, error } = await db
     .from("requests")
-    .select("id, user_id, title, subtitle, content, created_at, like_count")
+    .select("id, user_id, title, subtitle, content, created_at, upload_date, like_count")
     .order("like_count", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(3);
@@ -145,12 +226,22 @@ async function getTopRequests(db: SupabaseClient): Promise<RawRequestRow[]> {
 
 async function countRemainingRequests(
   db: SupabaseClient,
-  excludedIds: number[]
+  excludedIds: number[],
+  searchOr: string | null,
+  viewerId: string | null
 ) {
   let query = db.from("requests").select("id", { count: "exact", head: true });
 
   if (excludedIds.length > 0) {
     query = query.not("id", "in", `(${excludedIds.join(",")})`);
+  }
+
+  if (searchOr) {
+    query = query.or(searchOr);
+  }
+
+  if (viewerId !== null) {
+    query = query.eq("user_id", viewerId);
   }
 
   const { count, error } = await query;
@@ -164,7 +255,10 @@ async function countRemainingRequests(
 async function getRemainingRequestsPage(
   db: SupabaseClient,
   excludedIds: number[],
-  page: number
+  page: number,
+  searchOr: string | null,
+  sort: RequestSort,
+  viewerId: string | null
 ): Promise<RawRequestRow[]> {
   const safePage = Math.max(1, page);
   const from = (safePage - 1) * PAGE_SIZE;
@@ -172,12 +266,27 @@ async function getRemainingRequestsPage(
 
   let query = db
     .from("requests")
-    .select("id, user_id, title, subtitle, content, created_at, like_count")
-    .order("created_at", { ascending: false })
+    .select("id, user_id, title, subtitle, content, created_at, upload_date, like_count")
     .range(from, to);
 
   if (excludedIds.length > 0) {
     query = query.not("id", "in", `(${excludedIds.join(",")})`);
+  }
+
+  if (searchOr) {
+    query = query.or(searchOr);
+  }
+
+  if (viewerId !== null) {
+    query = query.eq("user_id", viewerId);
+  }
+
+  if (sort === "likes") {
+    query = query
+      .order("like_count", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false });
+  } else {
+    query = query.order("created_at", { ascending: false });
   }
 
   const { data, error } = await query;
@@ -199,18 +308,31 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     ? ctx.query.page[0]
     : ctx.query.page;
   const currentPage = Math.max(1, Number(rawPage ?? "1") || 1);
+  const q = normalizeSearchTerm(getSingleQueryValue(ctx.query.q));
+  const sort = normalizeRequestSort(ctx.query.sort);
 
   const rawTopRequests = await getTopRequests(db);
   const topIds = rawTopRequests.map((row) => row.id);
+  const authorIds = await getMatchingAuthorIds(db, q);
+  const searchOr = buildRequestSearchOr(q, authorIds);
+  const viewerIdFilter = sort === "mine" ? user?.id ?? EMPTY_USER_ID : null;
 
-  const remainingCount = await countRemainingRequests(db, topIds);
+  const remainingCount = await countRemainingRequests(
+    db,
+    topIds,
+    searchOr,
+    viewerIdFilter
+  );
   const totalPages = Math.max(1, Math.ceil(remainingCount / PAGE_SIZE));
   const clampedPage = Math.min(currentPage, totalPages);
 
   const rawListRequests = await getRemainingRequestsPage(
     db,
     topIds,
-    clampedPage
+    clampedPage,
+    searchOr,
+    sort,
+    viewerIdFilter
   );
 
   const [topRequests, listRequests] = await Promise.all([
@@ -233,6 +355,8 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
       likedRequestIds,
       currentPage: clampedPage,
       totalPages,
+      q,
+      sort,
     },
   };
 };
@@ -252,6 +376,8 @@ function RequestTopCard({
   onToggleLike,
   onOpenDetail,
 }: RequestCardProps) {
+  const uploadStatus = getUploadStatus(item.upload_date);
+
   return (
     <article
       className={styles.topCard}
@@ -266,16 +392,41 @@ function RequestTopCard({
       }}
     >
       <div className={styles.topCardMeta}>
-        <span className="writer">{item.nickname}</span>
+        <span className={styles.topCardAuthor}>
+          <FaUser size={12} aria-hidden="true" />
+          <span>{item.nickname}</span>
+        </span>
         <span className="date">{formatDate(item.created_at)}</span>
       </div>
 
-      <h3 className={styles.topCardTitle}>{item.title}</h3>
-      <p className={styles.topCardSubtitle}>{item.subtitle}</p>
-      <p className={styles.topCardBody}>{excerpt(item.content, 120)}</p>
+      <h3 className={styles.topCardTitle}>
+        <span>{item.title}</span>
+        {item.subtitle ? (
+          <>
+            <span className={styles.titleDot}>·</span>
+            <span className={styles.topCardSubtitle}>{item.subtitle}</span>
+          </>
+        ) : null}
+      </h3>
+      <p className={styles.topCardBody}>
+        {item.content.trim() ? item.content : "등록된 요청사항이 없습니다"}
+      </p>
 
       <div className={styles.topCardBottom}>
-        <span className={styles.badge}>Top Request</span>
+        {uploadStatus ? (
+          <span
+            className={`${styles.uploadBadge} ${
+              uploadStatus.uploaded ? styles.uploaded : styles.upcoming
+            }`}
+          >
+            <span className={styles.statusDot} />
+            <span>
+              {uploadStatus.label} {uploadStatus.date}
+            </span>
+          </span>
+        ) : (
+          <span />
+        )}
 
         <button
           type="button"
@@ -287,7 +438,10 @@ function RequestTopCard({
           disabled={busy}
           aria-label={liked ? "좋아요 취소" : "좋아요"}
         >
-          <span className={styles.heart}>{liked ? "♥" : "♡"}</span>
+          <Heart
+            size={18}
+            className={liked ? styles.heartActive : styles.heartIcon}
+          />
           <span>{item.like_count.toLocaleString()}</span>
         </button>
       </div>
@@ -332,7 +486,10 @@ function RequestListRow({
           disabled={busy}
           aria-label={liked ? "좋아요 취소" : "좋아요"}
         >
-          <span className={styles.heart}>{liked ? "♥" : "♡"}</span>
+          <Heart
+            size={16}
+            className={liked ? styles.heartActive : styles.heartIcon}
+          />
           <span>{item.like_count.toLocaleString()}</span>
         </button>
       </td>
@@ -347,6 +504,8 @@ export default function RequestPage({
   likedRequestIds,
   currentPage,
   totalPages,
+  q,
+  sort,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const router = useRouter();
 
@@ -365,6 +524,7 @@ export default function RequestPage({
     null
   );
   const [totalPagesState, setTotalPagesState] = useState(totalPages);
+  const [search, setSearch] = useState(q);
 
   useEffect(() => {
     setTopRequests(initialTopRequests);
@@ -376,9 +536,33 @@ export default function RequestPage({
     setTotalPagesState(totalPages);
   }, [totalPages]);
 
+  useEffect(() => {
+    setSearch(q);
+  }, [q]);
+
   const pageNumbers = useMemo(() => {
     return Array.from({ length: totalPagesState }, (_, idx) => idx + 1);
   }, [totalPagesState]);
+
+  function submitSearch(e: React.FormEvent) {
+    e.preventDefault();
+    void router.push({
+      pathname: "/community/request",
+      query: buildListQuery({ q: search, sort }),
+    });
+  }
+
+  function changeSort(nextSort: RequestSort) {
+    if (nextSort === "mine" && !currentUserId) {
+      setLoginModalOpen(true);
+      return;
+    }
+
+    void router.push({
+      pathname: "/community/request",
+      query: buildListQuery({ q: search, sort: nextSort }),
+    });
+  }
 
   const updateLikeCountInState = (requestId: number, delta: 1 | -1) => {
     setTopRequests((prev) =>
@@ -407,7 +591,7 @@ export default function RequestPage({
   async function fetchClientTopRequests() {
     const { data, error } = await supabase
       .from("requests")
-      .select("id, user_id, title, subtitle, content, created_at, like_count")
+      .select("id, user_id, title, subtitle, content, created_at, upload_date, like_count")
       .order("like_count", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(3);
@@ -416,7 +600,11 @@ export default function RequestPage({
     return (data as RawRequestRow[] | null) ?? [];
   }
 
-  async function fetchClientRemainingCount(excludedIds: number[]) {
+  async function fetchClientRemainingCount(
+    excludedIds: number[],
+    searchOr: string | null,
+    viewerId: string | null
+  ) {
     let query = supabase
       .from("requests")
       .select("id", { count: "exact", head: true });
@@ -425,24 +613,52 @@ export default function RequestPage({
       query = query.not("id", "in", `(${excludedIds.join(",")})`);
     }
 
+    if (searchOr) {
+      query = query.or(searchOr);
+    }
+
+    if (viewerId !== null) {
+      query = query.eq("user_id", viewerId);
+    }
+
     const { count, error } = await query;
     if (error) throw error;
     return count ?? 0;
   }
 
-  async function fetchClientRemainingPage(excludedIds: number[], page: number) {
+  async function fetchClientRemainingPage(
+    excludedIds: number[],
+    page: number,
+    searchOr: string | null,
+    viewerId: string | null
+  ) {
     const safePage = Math.max(1, page);
     const from = (safePage - 1) * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
 
     let query = supabase
       .from("requests")
-      .select("id, user_id, title, subtitle, content, created_at, like_count")
-      .order("created_at", { ascending: false })
+      .select("id, user_id, title, subtitle, content, created_at, upload_date, like_count")
       .range(from, to);
 
     if (excludedIds.length > 0) {
       query = query.not("id", "in", `(${excludedIds.join(",")})`);
+    }
+
+    if (searchOr) {
+      query = query.or(searchOr);
+    }
+
+    if (viewerId !== null) {
+      query = query.eq("user_id", viewerId);
+    }
+
+    if (sort === "likes") {
+      query = query
+        .order("like_count", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false });
+    } else {
+      query = query.order("created_at", { ascending: false });
     }
 
     const { data, error } = await query;
@@ -454,12 +670,25 @@ export default function RequestPage({
     try {
       const rawTopRequests = await fetchClientTopRequests();
       const topIds = rawTopRequests.map((row) => row.id);
+      const authorIds = await getMatchingAuthorIds(supabase, q);
+      const searchOr = buildRequestSearchOr(q, authorIds);
+      const viewerIdFilter =
+        sort === "mine" ? currentUserId ?? EMPTY_USER_ID : null;
 
-      const remainingCount = await fetchClientRemainingCount(topIds);
+      const remainingCount = await fetchClientRemainingCount(
+        topIds,
+        searchOr,
+        viewerIdFilter
+      );
       const nextTotalPages = Math.max(1, Math.ceil(remainingCount / PAGE_SIZE));
       const clampedPage = Math.min(currentPage, nextTotalPages);
 
-      const rawListRequests = await fetchClientRemainingPage(topIds, clampedPage);
+      const rawListRequests = await fetchClientRemainingPage(
+        topIds,
+        clampedPage,
+        searchOr,
+        viewerIdFilter
+      );
 
       const [nextTopRequests, nextListRequests] = await Promise.all([
         attachNicknames(supabase, rawTopRequests),
@@ -496,7 +725,11 @@ export default function RequestPage({
       const [createdItem] = await attachNicknames(supabase, [created]);
       if (!createdItem) return;
 
-      if (currentPage === 1) {
+      if (
+        currentPage === 1 &&
+        !q &&
+        (sort === "latest" || sort === "mine")
+      ) {
         setListRequests((prev) => {
           const withoutDuplicate = prev.filter(
             (item) => item.id !== createdItem.id
@@ -651,8 +884,35 @@ export default function RequestPage({
 
         <section className={styles.listSection}>
           <div className={styles.listHeader}>
-            <h2>곡 신청 목록</h2>
-            <p>Top 3를 제외한 나머지 곡 신청들을 최신순으로 보여줍니다.</p>
+            <div>
+              <h2>곡 신청 목록</h2>
+              <p>Top3를 제외한 신청곡들입니다.</p>
+            </div>
+
+            <div className={styles.listControls}>
+              <label className={styles.sortSelectWrap}>
+                <span className="sr-only">곡 신청 정렬 기준</span>
+                <select
+                  value={sort}
+                  onChange={(e) => changeSort(e.target.value as RequestSort)}
+                  className={styles.sortSelect}
+                >
+                  <option value="latest">최신 순</option>
+                  <option value="likes">좋아요 순</option>
+                  <option value="mine">내 신청곡</option>
+                </select>
+              </label>
+
+              <form onSubmit={submitSearch} className={styles.searchForm}>
+                <Search size={15} className={styles.searchIcon} aria-hidden="true" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="작성자, 제목, 부제목 검색"
+                  className={styles.searchInput}
+                />
+              </form>
+            </div>
           </div>
 
           <div className={styles.tableWrap}>
@@ -696,7 +956,7 @@ export default function RequestPage({
                   key={page}
                   href={{
                     pathname: "/community/request",
-                    query: { page },
+                    query: buildListQuery({ page, q, sort }),
                   }}
                   className={`${styles.pageLink} ${
                     isActive ? styles.pageLinkActive : ""
@@ -726,10 +986,14 @@ export default function RequestPage({
                 subtitle: selectedRequest.subtitle,
                 content: selectedRequest.content,
                 like_count: selectedRequest.like_count,
+                nickname: selectedRequest.nickname,
                 created_at: selectedRequest.created_at,
               }
             : null
         }
+        liked={selectedRequest ? likedSet.has(selectedRequest.id) : false}
+        busy={selectedRequest ? busyId === selectedRequest.id : false}
+        onToggleLike={toggleLike}
         onClose={() => setSelectedRequest(null)}
       />
 

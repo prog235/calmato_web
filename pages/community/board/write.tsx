@@ -5,14 +5,19 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
+import { Palette } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient"; // createBrowserClient 기반
 import { getImage } from "@/lib/getUrl";
 import LoginRequiredModal from "@/components/LoginRequiredModal";
+import PostBackgroundPicker, {
+  type PostBackgroundSelection,
+} from "@/components/PostBackgroundPicker";
 
 const POST_IMAGES_BUCKET = "post-images"; // 실제 버킷명으로 변경
 const MAX_FILES = 10;
 const MAX_FILE_SIZE_MB = 50;
 const WRITE_PAGE_IMAGE_SRC = getImage("assets", "write_page_image.png");
+const EMPTY_BACKGROUND_SELECTION: PostBackgroundSelection = { type: "none", value: null };
 
 function formatBytes(bytes: number) {
   const mb = bytes / (1024 * 1024);
@@ -39,7 +44,6 @@ function formatClock(date: Date) {
   return new Intl.DateTimeFormat("en-US", {
     hour: "2-digit",
     minute: "2-digit",
-    second: "2-digit",
     hour12: true,
   }).format(date);
 }
@@ -57,6 +61,8 @@ export default function WritePage() {
 
   const [ready, setReady] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [viewerNickname, setViewerNickname] = useState("Unknown");
+  const [viewerProfileImagePath, setViewerProfileImagePath] = useState<string | null>(null);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [now, setNow] = useState(() => new Date());
 
@@ -64,8 +70,12 @@ export default function WritePage() {
   const [isSecret, setIsSecret] = useState(false);
 
   const [files, setFiles] = useState<File[]>([]);
+  const [filePreviews, setFilePreviews] = useState<{ file: File; url: string }[]>([]);
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [backgroundPickerOpen, setBackgroundPickerOpen] = useState(false);
+  const [selectedBackground, setSelectedBackground] =
+    useState<PostBackgroundSelection>(EMPTY_BACKGROUND_SELECTION);
 
   const [submitting, setSubmitting] = useState(false);
   const [, setEditorStateVersion] = useState(0);
@@ -89,7 +99,7 @@ export default function WritePage() {
     editorProps: {
       attributes: {
         class:
-          "min-h-[360px] border-b border-white/12 bg-transparent px-1 py-4 text-sm leading-relaxed text-white/90 focus:outline-none focus:border-white/30",
+          "h-[360px] overflow-y-auto border-b border-white/12 bg-transparent px-1 py-4 text-sm leading-relaxed text-white/90 focus:outline-none focus:border-white/30",
       },
     },
     onSelectionUpdate: () => setEditorStateVersion((v) => v + 1),
@@ -122,6 +132,18 @@ export default function WritePage() {
       }
 
       setUserId(u.id);
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("nickname, profile_image_path")
+        .eq("id", u.id)
+        .maybeSingle();
+
+      if (!cancelled) {
+        setViewerNickname(profile?.nickname ?? "Unknown");
+        setViewerProfileImagePath(profile?.profile_image_path ?? null);
+      }
+
       setReady(true);
     }
 
@@ -138,6 +160,56 @@ export default function WritePage() {
 
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    const previews = files.map((file) => ({
+      file,
+      url: URL.createObjectURL(file),
+    }));
+
+    setFilePreviews(previews);
+
+    return () => {
+      previews.forEach((preview) => URL.revokeObjectURL(preview.url));
+    };
+  }, [files]);
+
+  const uploadedBackgroundOptions = useMemo(
+    () =>
+      filePreviews.map((preview, idx) => ({
+        id: `upload:${idx}`,
+        label: preview.file.name,
+        url: preview.url,
+      })),
+    [filePreviews]
+  );
+
+  useEffect(() => {
+    if (uploadedBackgroundOptions.length > 0 && selectedBackground.type === "none") {
+      setSelectedBackground({
+        type: "uploaded",
+        value: uploadedBackgroundOptions[0].id,
+      });
+      return;
+    }
+
+    if (selectedBackground.type === "uploaded") {
+      const exists = uploadedBackgroundOptions.some(
+        (option) => option.id === selectedBackground.value
+      );
+
+      if (!exists) {
+        setSelectedBackground(
+          uploadedBackgroundOptions.length > 0
+            ? {
+                type: "uploaded",
+                value: uploadedBackgroundOptions[0].id,
+              }
+            : EMPTY_BACKGROUND_SELECTION
+        );
+      }
+    }
+  }, [selectedBackground, uploadedBackgroundOptions]);
 
   function validateImageFile(file: File) {
     const sizeMb = file.size / (1024 * 1024);
@@ -233,6 +305,49 @@ export default function WritePage() {
     if (error) throw error;
   }
 
+  function getInitialBackgroundPayload(selection: PostBackgroundSelection) {
+    if (selection.type === "color" || selection.type === "asset") {
+      return {
+        card_background_type: selection.type,
+        card_background_value: selection.value,
+      };
+    }
+
+    return {
+      card_background_type: null,
+      card_background_value: null,
+    };
+  }
+
+  function getUploadedBackgroundIndex(selection: PostBackgroundSelection) {
+    if (selection.type !== "uploaded" || !selection.value) return null;
+
+    const idx = Number(selection.value.replace("upload:", ""));
+    return Number.isInteger(idx) && idx >= 0 ? idx : null;
+  }
+
+  async function updateUploadedPostBackground(
+    postId: number,
+    selection: PostBackgroundSelection,
+    uploadedPaths: string[]
+  ) {
+    const idx = getUploadedBackgroundIndex(selection);
+    if (idx === null) return;
+
+    const selectedPath = uploadedPaths[idx];
+    if (!selectedPath) return;
+
+    const { error } = await supabase
+      .from("posts")
+      .update({
+        card_background_type: "uploaded",
+        card_background_value: selectedPath,
+      })
+      .eq("id", postId);
+
+    if (error) throw error;
+  }
+
   async function onSubmit() {
     if (submitting) return;
 
@@ -270,6 +385,7 @@ export default function WritePage() {
         title: trimmedTitle,
         content: editorHtml,
         is_secret: isSecret,
+        ...getInitialBackgroundPayload(selectedBackground),
       })
       .select("id, user_id")
       .single();
@@ -297,6 +413,8 @@ export default function WritePage() {
       if (uploadedPaths.length > 0) {
         await insertPostImages(postId, uploadedPaths);
       }
+
+      await updateUploadedPostBackground(postId, selectedBackground, uploadedPaths);
 
       router.push("/community/board");
     } catch {
@@ -350,27 +468,49 @@ export default function WritePage() {
       />
 
       <div className="relative min-h-screen overflow-hidden bg-[#0a0a0a]">
-        {/* 오른쪽 배경 이미지 */}
+        {/* 왼쪽 배경 이미지 */}
         <div
-          className="pointer-events-none absolute inset-y-0 right-0 hidden w-[100vw] bg-cover bg-right-center opacity-85 lg:block"
-          style={{ backgroundImage: `url(${WRITE_PAGE_IMAGE_SRC})` }}
+          className="pointer-events-none absolute inset-y-0 left-0 hidden w-[100vw] origin-center bg-cover bg-center opacity-85 lg:block"
+          style={{
+            backgroundImage: `url(${WRITE_PAGE_IMAGE_SRC})`,
+            transform: "scaleX(-1)",
+          }}
           aria-hidden="true"
         />
 
-        {/* 이미지 왼쪽 페이드 */}
+        {/* 이미지 오른쪽 페이드 */}
         <div
           className="pointer-events-none absolute inset-y-0 right-0 hidden w-[100vw] lg:block"
           style={{
             background:
-              "linear-gradient(to right, #0a0a0a 0%, rgba(10,10,10,0.92) 25%, rgba(10,10,10,0.55) 50%, rgba(10,10,10,0.18) 70%, rgba(10,10,10,0) 100%)",
+              "linear-gradient(to left, #0a0a0a 0%, rgba(10,10,10,0.92) 25%, rgba(10,10,10,0.55) 50%, rgba(10,10,10,0.18) 70%, rgba(10,10,10,0) 100%)",
           }}
         />
 
         {/* 전체 상하 어둡게 */}
-        <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-t from-[#0a0a0a]/55 via-transparent to-[#0a0a0a] lg:block" />
-        <div className="relative z-10 grid min-h-screen gap-10 px-8 pt-8 pb-16 sm:pl-12 md:pl-16 lg:grid-cols-[minmax(0,1fr)_420px] xl:grid-cols-[minmax(0,1fr)_520px]">
-          <div className="max-w-4xl border border-white/12 p-8 rounded-md self-start bg-[#0a0a0a]/18 backdrop-blur-[1px]">
-            <div className="mb-6 border-b border-white/12 pb-4 text-xl font-semibold text-white/90">글 남기기</div>
+        <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-t from-[#0a0a0a]/30 via-transparent to-[#0a0a0a]/30 lg:block" />
+        <div className="relative z-10 grid min-h-screen gap-10 pt-8 pb-16 sm:px-8 md:px-12 lg:px-16 lg:grid-cols-[420px_minmax(0,1fr)] xl:grid-cols-[520px_minmax(0,1fr)]">
+          <aside className="hidden min-h-[calc(100vh-10rem)] lg:flex lg:flex-col lg:justify-between lg:p-4 text-white/75">
+              <div className="pt-0">
+                <p className="max-w-[260px] text-lg leading-8 text-white/68">
+                  당신의 오늘 하루는 어땠나요?
+                </p>
+                <div className="mt-8 h-px w-10 bg-white/24" />
+              </div>
+
+              <div className="pb-0">
+                <div className="h-px w-10 bg-white/24" />
+                <div className="mt-8 text-4xl font-semibold tracking-wide text-white/76">
+                  {formatClock(now)}
+                </div>
+                <div className="mt-3 text-base text-white/52">
+                  {formatCalendarDate(now)}
+                </div>
+              </div>
+          </aside>
+
+          <div className="w-full max-w-4xl justify-self-end border border-white/12 p-8 rounded-md self-start bg-[#0a0a0a]/18 backdrop-blur-[1px]">
+            <div className="mb-6 border-b border-white/12 pb-4 text-2xl font-semibold text-white/90">글 남기기</div>
 
             {/* Title */}
             <div className="mb-4">
@@ -383,7 +523,7 @@ export default function WritePage() {
             </div>
 
             {/* Toolbar */}
-            <div className="mb-2 flex items-center justify-between border-b border-white/12 py-2">
+            <div className="mb-4 flex items-center justify-between border-b border-white/12 py-2">
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -432,10 +572,12 @@ export default function WritePage() {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex h-9 w-9 items-center justify-center border-b border-transparent text-white/55 transition hover:border-white/25 hover:text-white"
+                  className="inline-flex h-9 items-center gap-1.5 border-b border-transparent px-1 text-xs text-white/55 transition hover:border-white/25 hover:text-white/80"
                   title="사진 첨부"
                 >
-                  <span className="text-lg">▣</span>
+                  <span>사진</span>
+                  <span className="text-white/30" aria-hidden="true">·</span>
+                  <span>{files.length}/{MAX_FILES}</span>
                 </button>
 
                 <input
@@ -446,10 +588,6 @@ export default function WritePage() {
                   onChange={onPickFiles}
                   className="hidden"
                 />
-
-                <div className="text-xs text-white/50">
-                  사진 {files.length}/{MAX_FILES}
-                </div>
               </div>
 
               <label className="flex items-center gap-2 text-sm text-white/70">
@@ -463,65 +601,105 @@ export default function WritePage() {
               </label>
             </div>
 
-            {/* Selected files */}
+            {/* Photo attachments */}
             <div
-              onDragEnter={(e) => {
-                e.preventDefault();
-                setIsDraggingFiles(true);
-              }}
-              onDragOver={(e) => e.preventDefault()}
-              onDragLeave={(e) => {
-                if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
-                setIsDraggingFiles(false);
-              }}
-              onDrop={onDropFiles}
-              className={`mb-4 rounded-xl border border-dashed p-3 transition ${
-                isDraggingFiles
-                  ? "border-white/35 bg-white/5"
-                  : "border-white/12 bg-transparent"
-              }`}
+              className="mb-4 pb-4"
             >
-              <div className="mb-2 flex items-center justify-between gap-3 text-xs text-white/55">
-                <span>첨부된 사진</span>
-                <span>{files.length}/{MAX_FILES}</span>
-              </div>
-
-              {files.length > 0 ? (
-                <div className="flex flex-col gap-2">
-                  {files.map((f, idx) => (
-                    <div
-                      key={`${f.name}_${idx}`}
-                      className="flex items-center justify-between border-b border-white/8 px-1 py-2"
-                    >
-                      <div className="min-w-0">
-                        <div className="truncate text-sm text-white/80">{f.name}</div>
-                        <div className="text-xs text-white/45">{formatBytes(f.size)}</div>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => fileInputRef.current?.click()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    fileInputRef.current?.click();
+                  }
+                }}
+                onDragEnter={(e) => {
+                  e.preventDefault();
+                  setIsDraggingFiles(true);
+                }}
+                onDragOver={(e) => e.preventDefault()}
+                onDragLeave={(e) => {
+                  if (e.currentTarget.contains(e.relatedTarget as Node | null)) return;
+                  setIsDraggingFiles(false);
+                }}
+                onDrop={onDropFiles}
+                className={`rounded-xl border border-dashed px-4 py-3 transition ${
+                  isDraggingFiles
+                    ? "border-white/30 bg-white/[0.045]"
+                    : "border-white/10 bg-white/[0.015] hover:border-white/18 hover:bg-white/[0.025]"
+                }`}
+              >
+                {files.length > 0 ? (
+                  <div className="flex min-h-16 items-center gap-2 overflow-x-auto">
+                    {filePreviews.map((preview, idx) => (
+                      <div
+                        key={`${preview.file.name}_${idx}`}
+                        className="group relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-white/10 bg-white/[0.035]"
+                      >
+                        <img
+                          src={preview.url}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeFile(idx);
+                          }}
+                          className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/55 text-xs text-white/70 opacity-90 transition hover:bg-black/75 hover:text-white sm:opacity-0 sm:group-hover:opacity-100"
+                          aria-label={`${preview.file.name} 삭제`}
+                        >
+                          ×
+                        </button>
                       </div>
+                    ))}
+
+                    {files.length < MAX_FILES && (
                       <button
                         type="button"
-                        onClick={() => removeFile(idx)}
-                        className="border-b border-transparent px-1 py-2 text-xs text-white/55 transition hover:border-white/25 hover:text-white/80"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          fileInputRef.current?.click();
+                        }}
+                        className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md border border-dashed border-white/12 bg-white/[0.015] text-xs text-white/45 transition hover:border-white/24 hover:text-white/70"
                       >
-                        제거
+                        + 추가
                       </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex min-h-20 w-full items-center justify-center border-y border-white/8 text-sm text-white/45 transition hover:border-white/18 hover:text-white/65"
-                >
-                  사진을 드래그 하거나 영역을 클릭해 파일을 선택하세요.
-                </button>
-              )}
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    className="flex min-h-16 w-full flex-col items-center justify-center gap-1 text-sm text-white/42 transition"
+                  >
+                    <span>
+                      {isDraggingFiles
+                        ? "여기에 사진을 놓아주세요."
+                        : "사진을 드래그 하거나 클릭해서 추가하세요."}
+                    </span>
+                    <span className="text-xs text-white/32">
+                      최대 {MAX_FILE_SIZE_MB}MB
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Content */}
             <div className="relative">
-              <EditorContent editor={editor} />
-              <div className="mt-4 flex justify-end">
+              <EditorContent editor={editor} placeholder="오늘의 하루는 어땠나요?"/>
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setBackgroundPickerOpen((open) => !open)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-white/[0.035] px-4 py-2 text-sm text-white/68 ring-1 ring-white/10 transition hover:bg-white/10 hover:text-white/85"
+                  aria-expanded={backgroundPickerOpen}
+                >
+                  <Palette size={15} aria-hidden="true" />
+                  배경 설정
+                </button>
                 <button
                   type="button"
                   onClick={onSubmit}
@@ -533,27 +711,23 @@ export default function WritePage() {
               </div>
             </div>
           </div>
-
-          <aside className="hidden min-h-[calc(100vh-10rem)] lg:flex lg:flex-col lg:justify-between lg:p-10 text-white/75">
-              <div className="pt-0">
-                <p className="max-w-[260px] text-lg leading-8 text-white/68">
-                  당신의 오늘 하루는 어땠나요?
-                </p>
-                <div className="mt-8 h-px w-10 bg-white/24" />
-              </div>
-
-              <div className="pb-0">
-                <div className="h-px w-10 bg-white/24" />
-                <div className="mt-8 text-4xl font-semibold tracking-wide text-white/76">
-                  {formatClock(now)}
-                </div>
-                <div className="mt-3 text-base text-white/52">
-                  {formatCalendarDate(now)}
-                </div>
-              </div>
-          </aside>
         </div>
       </div>
+
+      <PostBackgroundPicker
+        open={backgroundPickerOpen}
+        selection={selectedBackground}
+        uploadedImages={uploadedBackgroundOptions}
+        title={title}
+        content={editor?.getHTML() ?? ""}
+        nickname={viewerNickname}
+        profileImagePath={viewerProfileImagePath}
+        onClose={() => setBackgroundPickerOpen(false)}
+        onConfirm={(selection) => {
+          setSelectedBackground(selection);
+          setBackgroundPickerOpen(false);
+        }}
+      />
     </>
   );
 }

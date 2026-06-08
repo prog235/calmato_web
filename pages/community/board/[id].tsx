@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import { CornerDownRight, Heart, MessageCircle } from "lucide-react";
 
 import LoginRequiredModal from "@/components/LoginRequiredModal";
+import ProfileAvatar from "@/components/ProfileAvatar";
 import { supabase } from "@/lib/supabaseClient";
 import { supabaseServerForGSSP } from "@/lib/supabaseGSSP";
 import {
@@ -27,6 +28,7 @@ const POST_IMAGE_BUCKET = "post-images";
 type Viewer = {
   id: string;
   nickname: string;
+  profileImagePath: string | null;
 } | null;
 
 type CommentVM = {
@@ -37,6 +39,7 @@ type CommentVM = {
   content: string;
   created_at: string;
   nickname: string;
+  profileImagePath: string | null;
 };
 
 type ImageVM = {
@@ -57,6 +60,7 @@ type PageProps = {
     like_count: number;
     comment_count: number;
     author_nickname: string;
+    authorProfileImagePath: string | null;
     initialLiked: boolean;
   };
   images: ImageVM[];
@@ -134,6 +138,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     viewer = {
       id: user.id,
       nickname: viewerNickRes.nickname ?? "Unknown",
+      profileImagePath: viewerNickRes.profileImagePath ?? null,
     };
 
     const likedRes = await db
@@ -181,6 +186,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
       content: comment.content,
       created_at: comment.created_at,
       nickname: comment.profiles?.nickname ?? "Unknown",
+      profileImagePath: comment.profiles?.profile_image_path ?? null,
     })
   );
 
@@ -197,6 +203,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
         like_count: postRow.like_count ?? 0,
         comment_count: postRow.comment_count ?? 0,
         author_nickname: postRow.profiles?.nickname ?? "Unknown",
+        authorProfileImagePath: postRow.profiles?.profile_image_path ?? null,
         initialLiked,
       },
       images,
@@ -317,6 +324,7 @@ export default function BoardDetailPage({
       const inserted: CommentVM = {
         ...data,
         nickname: viewer.nickname,
+        profileImagePath: viewer.profileImagePath,
       };
 
       setComments((prev) => [...prev, inserted]);
@@ -452,6 +460,11 @@ export default function BoardDetailPage({
 
               <div className={styles.metaRow}>
                 <div className={styles.metaLeft}>
+                  <ProfileAvatar
+                    imagePath={post.authorProfileImagePath}
+                    className="h-6 w-6 shrink-0 ring-1 ring-white/10"
+                    sizes="32px"
+                  />
                   <span className={styles.author}>{post.author_nickname}</span>
                   <span className={styles.dot}>·</span>
                   <span>{formatDate(post.created_at)}</span>
@@ -558,6 +571,11 @@ export default function BoardDetailPage({
                     <div key={comment.id} className={styles.commentBlock}>
                       <div className={styles.commentCard}>
                         <div className={styles.commentMeta}>
+                          <ProfileAvatar
+                            imagePath={comment.profileImagePath}
+                            className="h-6 w-6 shrink-0 ring-1 ring-white/10"
+                            sizes="24px"
+                          />
                           <span className={styles.commentNickname}>{comment.nickname}</span>
                           <span className={styles.dot}>·</span>
                           <span>{formatDate(comment.created_at)}</span>
@@ -632,6 +650,11 @@ export default function BoardDetailPage({
 
                                     <div className={styles.replyCard}>
                                       <div className={styles.commentMeta}>
+                                        <ProfileAvatar
+                                          imagePath={reply.profileImagePath}
+                                          className="h-7 w-7 shrink-0 ring-1 ring-white/10"
+                                          sizes="28px"
+                                        />
                                         <span className={styles.commentNickname}>{reply.nickname}</span>
                                         <span className={styles.dot}>·</span>
                                         <span>{formatDate(reply.created_at)}</span>

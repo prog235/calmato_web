@@ -54,7 +54,11 @@ export default function TracksView({ categories, playlists }: Props) {
     if (selectedCategoryId == null) return [];
 
     return playlists
-      .filter((pl) => Number(pl.category_id) === selectedCategoryId)
+      .filter(
+        (pl) =>
+          Number(pl.category_id) === selectedCategoryId &&
+          pl.show_in_category === true
+      )
       .sort((a, b) => Number(a.id) - Number(b.id));
   }, [playlists, selectedCategoryId]);
 

@@ -3,6 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const BOARD_PAGE_SIZE = 9;
 
+export type BoardSort = "latest" | "likes" | "views" | "mine";
+
 export type BoardPostRow = {
   id: number;
   user_id: string;
@@ -14,8 +16,10 @@ export type BoardPostRow = {
   view_count: number | null;
   like_count: number | null;
   comment_count: number | null;
+  card_background_type: string | null;
+  card_background_value: string | null;
 
-  profiles: { nickname: string } | null;
+  profiles: { nickname: string; profile_image_path: string | null } | null;
 
   post_images: { storage_path: string | null; sort_order: number | null }[] | null;
 };
@@ -32,13 +36,16 @@ export function buildBoardSearchOr(q: string) {
  */
 export async function countBoardPosts(
   db: SupabaseClient,
-  params: { q?: string }
+  params: { q?: string; viewerId?: string | null }
 ) {
   const or = buildBoardSearchOr(params.q ?? "");
 
   let query = db.from("posts").select("id", { count: "exact", head: true });
 
   if (or) query = query.or(or);
+  if (params.viewerId !== undefined && params.viewerId !== null) {
+    query = query.eq("user_id", params.viewerId);
+  }
 
   const res = await query;
   return { count: res.count ?? 0, error: res.error };
@@ -54,12 +61,15 @@ type PostRowRaw = {
   view_count: number | null;
   like_count: number | null;
   comment_count: number | null;
+  card_background_type: string | null;
+  card_background_value: string | null;
   post_images: { storage_path: string | null; sort_order: number | null }[] | null;
 };
 
 type ProfileRowRaw = {
   id: string;
   nickname: string | null;
+  profile_image_path: string | null;
 };
 
 /**
@@ -72,6 +82,8 @@ export async function getBoardPostsPage(
     page: number;
     pageSize?: number;
     profilesFkName: string;
+    sort?: BoardSort;
+    viewerId?: string | null;
   }
 ) {
   const pageSize = params.pageSize ?? BOARD_PAGE_SIZE;
@@ -95,15 +107,33 @@ export async function getBoardPostsPage(
         view_count,
         like_count,
         comment_count,
+        card_background_type,
+        card_background_value,
         post_images(storage_path, sort_order)
       `
-    )
-    .order("created_at", { ascending: false })
+    );
+
+  if (or) postsQuery = postsQuery.or(or);
+  if (params.viewerId !== undefined && params.viewerId !== null) {
+    postsQuery = postsQuery.eq("user_id", params.viewerId);
+  }
+
+  if (params.sort === "likes") {
+    postsQuery = postsQuery
+      .order("like_count", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false });
+  } else if (params.sort === "views") {
+    postsQuery = postsQuery
+      .order("view_count", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false });
+  } else {
+    postsQuery = postsQuery.order("created_at", { ascending: false });
+  }
+
+  postsQuery = postsQuery
     .range(from, to)
     .order("sort_order", { foreignTable: "post_images", ascending: true })
     .limit(1, { foreignTable: "post_images" });
-
-  if (or) postsQuery = postsQuery.or(or);
 
   const postsRes = await postsQuery;
 
@@ -121,15 +151,19 @@ export async function getBoardPostsPage(
 
   const profilesRes = await db
     .from("profiles")
-    .select("id, nickname")
+    .select("id, nickname, profile_image_path")
     .in("id", userIds);
 
-  const profileMap = new Map<string, { nickname: string } | null>();
+  const profileMap = new Map<
+    string,
+    { nickname: string; profile_image_path: string | null } | null
+  >();
 
   if (!profilesRes.error) {
     for (const profile of ((profilesRes.data as ProfileRowRaw[] | null) ?? [])) {
       profileMap.set(profile.id, {
         nickname: profile.nickname ?? "Unknown",
+        profile_image_path: profile.profile_image_path ?? null,
       });
     }
   }
@@ -157,7 +191,9 @@ export type BoardDetailRow = {
   view_count: number | null;
   like_count: number | null;
   comment_count: number | null;
-  profiles: { nickname: string } | null;
+  card_background_type: string | null;
+  card_background_value: string | null;
+  profiles: { nickname: string; profile_image_path: string | null } | null;
   post_images: { storage_path: string | null; sort_order: number | null }[] | null;
 };
 
@@ -171,6 +207,8 @@ type BoardDetailRaw = {
   view_count: number | null;
   like_count: number | null;
   comment_count: number | null;
+  card_background_type: string | null;
+  card_background_value: string | null;
   post_images: { storage_path: string | null; sort_order: number | null }[] | null;
 };
 
@@ -181,7 +219,7 @@ export type BoardCommentRow = {
   parent_comment_id: number | null;
   content: string;
   created_at: string;
-  profiles: { nickname: string } | null;
+  profiles: { nickname: string; profile_image_path: string | null } | null;
 };
 
 type BoardCommentRaw = {
@@ -224,6 +262,8 @@ export async function getBoardPostById(
         view_count,
         like_count,
         comment_count,
+        card_background_type,
+        card_background_value,
         post_images(storage_path, sort_order)
       `
     )
@@ -239,14 +279,17 @@ export async function getBoardPostById(
 
   const profileRes = await db
     .from("profiles")
-    .select("id, nickname")
+    .select("id, nickname, profile_image_path")
     .eq("id", post.user_id)
     .maybeSingle();
 
   const merged: BoardDetailRow = {
     ...post,
     profiles: !profileRes.error && profileRes.data
-      ? { nickname: profileRes.data.nickname ?? "Unknown" }
+      ? {
+          nickname: profileRes.data.nickname ?? "Unknown",
+          profile_image_path: profileRes.data.profile_image_path ?? null,
+        }
       : null,
     post_images: post.post_images ?? null,
   };
@@ -278,15 +321,19 @@ export async function getBoardComments(
 
   const profilesRes = await db
     .from("profiles")
-    .select("id, nickname")
+    .select("id, nickname, profile_image_path")
     .in("id", userIds);
 
-  const profileMap = new Map<string, { nickname: string } | null>();
+  const profileMap = new Map<
+    string,
+    { nickname: string; profile_image_path: string | null } | null
+  >();
 
   if (!profilesRes.error) {
     for (const profile of ((profilesRes.data as ProfileRowRaw[] | null) ?? [])) {
       profileMap.set(profile.id, {
         nickname: profile.nickname ?? "Unknown",
+        profile_image_path: profile.profile_image_path ?? null,
       });
     }
   }
@@ -331,7 +378,7 @@ export async function getViewerNickname(
 ) {
   const res = await db
     .from("profiles")
-    .select("nickname")
+    .select("nickname, profile_image_path")
     .eq("id", params.userId)
     .maybeSingle();
 
@@ -341,6 +388,7 @@ export async function getViewerNickname(
 
   return {
     nickname: res.data?.nickname ?? "Unknown",
+    profileImagePath: res.data?.profile_image_path ?? null,
     error: null,
   };
 }

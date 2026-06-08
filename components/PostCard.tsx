@@ -6,6 +6,7 @@ import { useRouter } from "next/router";
 import { Heart, MessageCircle, Eye } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import LoginRequiredModal from "@/components/LoginRequiredModal";
+import ProfileAvatar from "@/components/ProfileAvatar";
 
 type PostCardProps = {
   href: string;
@@ -13,6 +14,7 @@ type PostCardProps = {
   isLocked: boolean;
 
   nickname: string;
+  profileImagePath?: string | null;
   createdAt: string;
 
   title: string;
@@ -24,6 +26,7 @@ type PostCardProps = {
   initialLiked: boolean;
 
   backgroundImageUrl?: string | null;
+  backgroundColor?: string | null;
 };
 
 function formatKoreanDateTime(iso: string) {
@@ -43,6 +46,7 @@ export default function PostCard(props: PostCardProps) {
     postId,
     isLocked,
     nickname,
+    profileImagePath,
     createdAt,
     title,
     content,
@@ -51,6 +55,7 @@ export default function PostCard(props: PostCardProps) {
     viewCount,
     initialLiked,
     backgroundImageUrl,
+    backgroundColor,
   } = props;
 
   const [isLiked, setIsLiked] = useState(initialLiked);
@@ -144,19 +149,29 @@ export default function PostCard(props: PostCardProps) {
             <div className="absolute inset-0 bg-black/55" />
             <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/40" />
           </div>
+        ) : backgroundColor ? (
+          <div className="absolute inset-0" style={{ backgroundColor }}>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.08),transparent_55%)]" />
+          </div>
         ) : (
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.08),transparent_55%)]" />
         )}
 
         <div className="relative flex min-h-[220px] flex-col px-5 pt-5 pb-4">
           {/* Top meta */}
-          <div className="mb-3 flex justify-between gap-2 text-xs text-white/55">
-            <span className="inline-flex items-center gap-2">
-              <span className="inline-block h-6 w-6 rounded-full bg-white/10" />
-              <span className="truncate">{nickname}</span>
+          <div className="mb-4 flex items-center justify-between gap-2 text-[13px] text-white/60">
+            <span className="inline-flex h-6 min-w-0 items-center gap-3">
+              <ProfileAvatar
+                imagePath={profileImagePath}
+                className="h-6 w-6 shrink-0 ring-1 ring-white/10"
+                sizes="24px"
+              />
+              <span className="truncate leading-none">{nickname}</span>
             </span>
 
-            <span>{formatKoreanDateTime(createdAt)}</span>
+            <span className="flex h-6 shrink-0 items-center leading-none">
+              {formatKoreanDateTime(createdAt)}
+            </span>
           </div>
 
           {/* Content block */}

@@ -1,15 +1,14 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/router";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Camera, Check, Pencil, UserRound, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import ProfileAvatar from "@/components/ProfileAvatar";
+import { PROFILE_IMAGES_BUCKET } from "@/lib/profileImages";
 import { supabase } from "@/lib/supabaseClient";
 import { validateNickname } from "@/lib/validateNickname";
-
-const PROFILE_IMAGES_BUCKET = "profile_images";
-const DEFAULT_PROFILE_IMAGE_PATH = "default_profile.png";
 
 type ProfilePopupState =
   | { state: "idle" }
@@ -43,14 +42,6 @@ function makeProfileImagePath(userId: string, file: File) {
   return `${userId}/${uuid}_${safeFileName(file.name)}`;
 }
 
-function getProfileImageUrl(path: string | null) {
-  const { data } = supabase.storage
-    .from(PROFILE_IMAGES_BUCKET)
-    .getPublicUrl(path ?? DEFAULT_PROFILE_IMAGE_PATH);
-
-  return data.publicUrl;
-}
-
 export default function Navbar() {
   const router = useRouter();
   const popupRef = useRef<HTMLDivElement | null>(null);
@@ -63,7 +54,6 @@ export default function Navbar() {
   const [dup, setDup] = useState<DupState>({ state: "idle" });
   const [isSavingNickname, setIsSavingNickname] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [profileImageFailed, setProfileImageFailed] = useState(false);
 
   const links = [
     { href: "/", label: "Home" },
@@ -77,17 +67,6 @@ export default function Navbar() {
     () => validateNickname(nextNickname),
     [nextNickname]
   );
-
-  const profileImageUrl =
-    profile.state === "ready"
-      ? getProfileImageUrl(profile.profileImagePath)
-      : null;
-  const defaultProfileImageUrl = getProfileImageUrl(DEFAULT_PROFILE_IMAGE_PATH);
-  const displayedProfileImageUrl = profileImageFailed
-    ? defaultProfileImageUrl
-    : profileImageUrl;
-  const currentProfileImagePath =
-    profile.state === "ready" ? profile.profileImagePath : null;
 
   async function loadProfile() {
     setProfile({ state: "loading" });
@@ -131,7 +110,6 @@ export default function Navbar() {
     setNextNickname(nickname);
     setDup({ state: "idle" });
     setIsEditingNickname(false);
-    setProfileImageFailed(false);
   }
 
   async function handleProfileButtonClick() {
@@ -225,7 +203,6 @@ export default function Navbar() {
       if (updateError) throw updateError;
 
       setProfile({ ...profile, profileImagePath: path });
-      setProfileImageFailed(false);
     } catch (e) {
       setProfile({
         state: "error",
@@ -322,10 +299,6 @@ export default function Navbar() {
     return () => window.clearTimeout(timer);
   }, [isEditingNickname, nextNickname, profile, validation.valid]);
 
-  useEffect(() => {
-    setProfileImageFailed(false);
-  }, [currentProfileImagePath]);
-
   return (
     <header
       className="
@@ -396,8 +369,15 @@ export default function Navbar() {
             <UserRound size={18} strokeWidth={1.7} />
           </button>
 
-          {isProfileOpen && (
-            <div className="absolute right-0 top-14 z-50 w-[280px] rounded-2xl border border-white/15 bg-[#151515]/90 p-7 text-center shadow-[0_24px_80px_rgba(0,0,0,0.55)] backdrop-blur-md">
+          <AnimatePresence>
+            {isProfileOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -8, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.97 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute right-0 top-14 z-50 min-h-[380px] w-[280px] origin-top-right rounded-2xl border border-white/15 bg-[#151515]/90 p-7 text-center shadow-[0_30px_80px_rgba(0,0,0,0.88),0_0_0_1px_rgba(255,255,255,0.05),0_0_36px_rgba(255,255,255,0.08)] backdrop-blur-md"
+            >
               <button
                 type="button"
                 onClick={() => setIsProfileOpen(false)}
@@ -408,35 +388,25 @@ export default function Navbar() {
               </button>
 
               {profile.state === "loading" && (
-                <div className="py-20 text-sm text-white/55">프로필을 불러오는 중...</div>
+                <div className="flex min-h-[334px] items-center justify-center text-sm text-white/55">
+                  프로필을 불러오는 중...
+                </div>
               )}
 
               {profile.state === "error" && (
-                <div className="py-16 text-sm text-red-300">{profile.message}</div>
+                <div className="flex min-h-[334px] items-center justify-center text-sm text-red-300">
+                  {profile.message}
+                </div>
               )}
 
               {profile.state === "ready" && (
                 <>
                   <div className="relative mx-auto h-32 w-32">
-                    <div className="flex h-32 w-32 mt-4 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/8">
-                      {displayedProfileImageUrl ? (
-                        <Image
-                          src={displayedProfileImageUrl}
-                          alt="프로필 이미지"
-                          fill
-                          sizes="128px"
-                          unoptimized
-                          className="rounded-full object-cover"
-                          onError={() => {
-                            if (displayedProfileImageUrl !== defaultProfileImageUrl) {
-                              setProfileImageFailed(true);
-                            }
-                          }}
-                        />
-                      ) : (
-                        <UserRound size={46} className="text-white/58" strokeWidth={1.5} />
-                      )}
-                    </div>
+                    <ProfileAvatar
+                      imagePath={profile.profileImagePath}
+                      className="mt-4 h-32 w-32 border border-white/10"
+                      sizes="128px"
+                    />
 
                     <button
                       type="button"
@@ -520,8 +490,9 @@ export default function Navbar() {
                   </div>
                 </>
               )}
-            </div>
-          )}
+            </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </nav>
     </header>

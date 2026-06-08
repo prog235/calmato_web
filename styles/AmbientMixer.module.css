@@ -1,0 +1,73 @@
+.volumeRange {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+}
+
+.volumeRange::-webkit-slider-runnable-track {
+  width: 12px;
+  height: 100%;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.volumeRange::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 12px;
+  height: 22px;
+  margin-left: 0px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 2px;
+  background:
+    linear-gradient(180deg, rgba(235, 235, 235, 0.98), rgba(203, 203, 203, 0.98));
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.28),
+    0 6px 14px rgba(0, 0, 0, 0.38),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.volumeRange::-moz-range-track {
+  width: 10px;
+  height: 100%;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.volumeRange::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(235, 235, 235, 0.98), rgba(203, 203, 203, 0.98));
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.28),
+    0 6px 14px rgba(0, 0, 0, 0.38),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.toggleWaveBar {
+  height: var(--bar-height);
+  transform-origin: center;
+}
+
+.toggleWaveBarPlaying {
+  animation: ambient-toggle-wave 1.18s ease-in-out infinite;
+  animation-delay: var(--bar-delay);
+}
+
+@keyframes ambient-toggle-wave {
+  0%,
+  100% {
+    transform: scaleY(0.58);
+  }
+
+  45% {
+    transform: scaleY(1.05);
+  }
+
+  72% {
+    transform: scaleY(0.82);
+  }
+}

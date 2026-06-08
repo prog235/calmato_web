@@ -1,4 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
+import { X } from "lucide-react";
+
 import { supabase } from "@/lib/supabaseClient";
 
 export type CreatedRequestRow = {
@@ -8,6 +10,7 @@ export type CreatedRequestRow = {
   subtitle: string | null;
   content: string | null;
   created_at: string;
+  upload_date: string | null;
   like_count: number | null;
 };
 
@@ -78,7 +81,7 @@ export default function RequestCreateModal({
           subtitle: subtitle.trim(),
           content: content.trim() === "" ? null : content.trim(),
         })
-        .select("id, user_id, title, subtitle, content, created_at, like_count")
+        .select("id, user_id, title, subtitle, content, created_at, upload_date, like_count")
         .single();
 
       if (error) {
@@ -104,71 +107,85 @@ export default function RequestCreateModal({
 
   return (
     <div
-      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 px-4"
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/72 px-4 py-8 backdrop-blur-sm"
       onClick={onClose}
       aria-modal="true"
       role="dialog"
     >
       <div
-        className="w-full max-w-2xl rounded-2xl border border-white/10 bg-neutral-950 p-6 shadow-2xl"
+        className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-white/14 bg-[#111214]/95 p-6 shadow-[0_24px_72px_rgba(0,0,0,0.65)] sm:p-7"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-semibold text-white">Request a Song</h2>
-            <p className="mt-2 text-sm text-neutral-400">
-              Calmato에서 듣고 싶은 곡을 남겨주세요.
-            </p>
-          </div>
+        <div
+          className="pointer-events-none absolute inset-0 opacity-70"
+          style={{
+            background:
+              "radial-gradient(circle at 16% 10%, rgba(211,166,88,0.10), transparent 34%), radial-gradient(circle at 80% 0%, rgba(255,255,255,0.055), transparent 30%)",
+          }}
+          aria-hidden="true"
+        />
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full px-3 py-1 text-sm text-neutral-300 transition hover:bg-white/10 hover:text-white"
-          >
-            닫기
-          </button>
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-5 top-5 z-10 flex h-10 w-10 items-center justify-center rounded-full text-white/58 transition hover:bg-white/8 hover:text-white"
+          aria-label="닫기"
+        >
+          <X size={22} strokeWidth={1.7} />
+        </button>
+
+        <div className="relative mb-5">
+          <p className="text-xs uppercase tracking-[0.34em] text-[#d2a65d]">
+            SONG REQUEST
+          </p>
+          <h2 className="mt-4 text-3xl font-bold tracking-tight text-white">
+            Request a Song
+          </h2>
+          <p className="mt-3 text-md leading-relaxed text-white/58">
+            Calmato에서 듣고 싶은 곡을 남겨주세요.
+          </p>
+          <div className="mt-4 h-px w-full bg-white/12" />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="relative space-y-5">
           <div>
-            <label className="mb-2 block text-sm font-medium text-white">
-              제목 <span className="text-red-400">*</span>
+            <label className="mb-2 block text-sm font-medium text-white/70">
+              곡 제목 <span className="text-[#d2a65d]">*</span>
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="예: Spirited Away OST"
-              className="w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-white placeholder:text-neutral-500 outline-none transition focus:border-white/30"
+              className="w-full border-0 border-b border-white/12 bg-transparent px-0 py-3 text-white outline-none transition placeholder:text-white/30 focus:border-[#d2a65d]/55"
               maxLength={120}
             />
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-white">
-              부제목 (영화 제목 / 가수) <span className="text-red-400">*</span>
+            <label className="mb-2 block text-sm font-medium text-white/70">
+              영화 / 가수 / 작곡가 <span className="text-[#d2a65d]">*</span>
             </label>
             <input
               type="text"
               value={subtitle}
               onChange={(e) => setSubtitle(e.target.value)}
               placeholder="예: Joe Hisaishi / Spirited Away"
-              className="w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-white placeholder:text-neutral-500 outline-none transition focus:border-white/30"
+              className="w-full border-0 border-b border-white/12 bg-transparent px-0 py-3 text-white outline-none transition placeholder:text-white/30 focus:border-[#d2a65d]/55"
               maxLength={120}
             />
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-white">
-              요청사항 <span className="text-neutral-500">(선택)</span>
+            <label className="mb-2 block text-sm font-medium text-white/70">
+              요청사항 <span className="text-white/38">(선택)</span>
             </label>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="어떤 분위기로 듣고 싶은지 자유롭게 적어주세요."
               rows={6}
-              className="w-full resize-none rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-white placeholder:text-neutral-500 outline-none transition focus:border-white/30"
+              className="w-full resize-none border-0 border-b border-white/12 bg-transparent px-0 py-3 text-white outline-none transition placeholder:text-white/30 focus:border-[#d2a65d]/55"
               maxLength={1000}
             />
           </div>
@@ -177,11 +194,11 @@ export default function RequestCreateModal({
             <p className="text-sm text-red-400">{errorMessage}</p>
           ) : null}
 
-          <div className="flex items-center justify-end gap-3 pt-2">
+          <div className="flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-neutral-300 transition hover:bg-white/5 hover:text-white"
+              className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-white/62 transition hover:bg-white/6 hover:text-white"
             >
               취소
             </button>

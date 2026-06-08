@@ -6,6 +6,7 @@ export type PlaylistDP = {
   category_id: number;
   track_n: number;
   is_asmr: boolean;
+  show_in_category: boolean;
 };
 
 export type Track = {

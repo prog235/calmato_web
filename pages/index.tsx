@@ -30,12 +30,18 @@ export default function Home() {
         animate={{ opacity: 1, y: 0 }}  // 끝 상태: 불투명, 제자리
         transition={{ duration: 1, ease: "easeOut" }} // 애니메이션 속도
       >
-        <Image
-          src={bgText}
-          alt="bgText"
-          width={800}
-          height={300}
-        />
+        <div className="relative px-8 py-6">
+          <div
+            className="pointer-events-none absolute inset-0 -z-10 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.48)_0%,rgba(0,0,0,0.28)_42%,rgba(0,0,0,0)_72%)] blur-md"
+            aria-hidden="true"
+          />
+          <Image
+            src={bgText}
+            alt="bgText"
+            width={800}
+            height={300}
+          />
+        </div>
       </motion.div>
 
 
