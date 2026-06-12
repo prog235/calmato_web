@@ -17,13 +17,17 @@ export type CreatedRequestRow = {
 type RequestCreateModalProps = {
   open: boolean;
   onClose: () => void;
+  initialRequest?: CreatedRequestRow | null;
   onCreated?: (created: CreatedRequestRow) => void | Promise<void>;
+  onUpdated?: (updated: CreatedRequestRow) => void | Promise<void>;
 };
 
 export default function RequestCreateModal({
   open,
   onClose,
+  initialRequest = null,
   onCreated,
+  onUpdated,
 }: RequestCreateModalProps) {
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
@@ -32,15 +36,26 @@ export default function RequestCreateModal({
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  const isEditMode = Boolean(initialRequest);
+
   useEffect(() => {
-    if (!open) {
+    if (open && initialRequest) {
+      setTitle(initialRequest.title ?? "");
+      setSubtitle(initialRequest.subtitle ?? "");
+      setContent(initialRequest.content ?? "");
+      setSubmitting(false);
+      setErrorMessage("");
+      return;
+    }
+
+    if (open) {
       setTitle("");
       setSubtitle("");
       setContent("");
       setSubmitting(false);
       setErrorMessage("");
     }
-  }, [open]);
+  }, [initialRequest, open]);
 
   useEffect(() => {
     function handleEsc(e: KeyboardEvent) {
@@ -74,31 +89,51 @@ export default function RequestCreateModal({
       setSubmitting(true);
       setErrorMessage("");
 
-      const { data, error } = await supabase
-        .from("requests")
-        .insert({
-          title: title.trim(),
-          subtitle: subtitle.trim(),
-          content: content.trim() === "" ? null : content.trim(),
-        })
-        .select("id, user_id, title, subtitle, content, created_at, upload_date, like_count")
-        .single();
+      const payload = {
+        title: title.trim(),
+        subtitle: subtitle.trim(),
+        content: content.trim() === "" ? null : content.trim(),
+      };
+
+      const { data, error } = initialRequest
+        ? await supabase
+            .from("requests")
+            .update(payload)
+            .eq("id", initialRequest.id)
+            .eq("user_id", initialRequest.user_id)
+            .select("id, user_id, title, subtitle, content, created_at, upload_date, like_count")
+            .single()
+        : await supabase
+            .from("requests")
+            .insert(payload)
+            .select("id, user_id, title, subtitle, content, created_at, upload_date, like_count")
+            .single();
 
       if (error) {
         throw error;
       }
 
       if (!data) {
-        throw new Error("생성된 요청 데이터를 불러오지 못했습니다.");
+        throw new Error(
+          initialRequest
+            ? "수정된 요청 데이터를 불러오지 못했습니다."
+            : "생성된 요청 데이터를 불러오지 못했습니다."
+        );
       }
 
-      await onCreated?.(data as CreatedRequestRow);
+      if (initialRequest) {
+        await onUpdated?.(data as CreatedRequestRow);
+      } else {
+        await onCreated?.(data as CreatedRequestRow);
+      }
       onClose();
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
-          : "곡 신청 등록 중 오류가 발생했습니다.";
+          : initialRequest
+            ? "곡 신청 수정 중 오류가 발생했습니다."
+            : "곡 신청 등록 중 오류가 발생했습니다.";
       setErrorMessage(message);
     } finally {
       setSubmitting(false);
@@ -139,10 +174,12 @@ export default function RequestCreateModal({
             SONG REQUEST
           </p>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-white">
-            Request a Song
+            {isEditMode ? "Edit Request" : "Request a Song"}
           </h2>
           <p className="mt-3 text-md leading-relaxed text-white/58">
-            Calmato에서 듣고 싶은 곡을 남겨주세요.
+            {isEditMode
+              ? "신청한 곡 정보를 수정해주세요."
+              : "Calmato에서 듣고 싶은 곡을 남겨주세요."}
           </p>
           <div className="mt-4 h-px w-full bg-white/12" />
         </div>
@@ -208,7 +245,13 @@ export default function RequestCreateModal({
               disabled={submitting || !isValid}
               className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {submitting ? "등록 중..." : "등록하기"}
+              {submitting
+                ? isEditMode
+                  ? "수정 중..."
+                  : "등록 중..."
+                : isEditMode
+                  ? "수정하기"
+                  : "등록하기"}
             </button>
           </div>
         </form>

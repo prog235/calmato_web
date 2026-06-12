@@ -6,7 +6,16 @@ import Link from "next/link";
 import { type ChangeEvent, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
-import { CornerDownRight, Heart, MessageCircle } from "lucide-react";
+import {
+  CornerDownRight,
+  Flag,
+  Heart,
+  LockKeyhole,
+  MessageCircle,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 
 import LoginRequiredModal from "@/components/LoginRequiredModal";
 import ProfileAvatar from "@/components/ProfileAvatar";
@@ -16,7 +25,6 @@ import {
   getBoardComments,
   getBoardPostById,
   getBoardSidebarList,
-  getViewerNickname,
   type BoardCommentRow,
   type BoardDetailRow,
   type BoardListRow,
@@ -42,11 +50,32 @@ type CommentVM = {
   profileImagePath: string | null;
 };
 
+type ReportTarget =
+  | { type: "post"; postId: number }
+  | { type: "comment"; comment: CommentVM };
+
+type ReportPopoverPosition = {
+  top: number;
+  left: number;
+  placement: "above" | "below";
+};
+
 type ImageVM = {
   storage_path: string;
   sort_order: number | null;
   url: string;
 };
+
+const REPORT_REASONS = [
+  { value: "spam", label: "스팸 또는 광고성 내용" },
+  { value: "harassment", label: "욕설 또는 괴롭힘" },
+  { value: "hate_or_discrimination", label: "혐오 또는 차별적 표현" },
+  { value: "sexual_or_inappropriate", label: "선정적이거나 부적절한 내용" },
+  { value: "privacy_or_personal_info", label: "개인정보 노출" },
+  { value: "other", label: "기타" },
+] as const;
+
+type ReportReason = (typeof REPORT_REASONS)[number]["value"];
 
 type PageProps = {
   post: {
@@ -92,6 +121,19 @@ function isHtmlContent(text: string) {
   return /<\/?[a-z][\s\S]*>/i.test(text);
 }
 
+function getReportErrorMessage(error: unknown, targetLabel: string) {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: string }).code === "23505"
+  ) {
+    return `이미 신고한 ${targetLabel}입니다.`;
+  }
+
+  return `${targetLabel} 신고 처리 중 오류가 발생했습니다.`;
+}
+
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
   const db = supabaseServerForGSSP(ctx);
 
@@ -106,6 +148,26 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     data: { user },
   } = await db.auth.getUser();
 
+  let viewerProfile: {
+    nickname: string | null;
+    profile_image_path: string | null;
+    role: string | null;
+  } | null = null;
+
+  if (user?.id) {
+    const { data: profile, error: profileError } = await db
+      .from("profiles")
+      .select("nickname, profile_image_path, role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error("[BoardDetailPage] viewer profile error:", profileError);
+    }
+
+    viewerProfile = profile ?? null;
+  }
+
   const postRes = await getBoardPostById(db, { postId });
 
   if (postRes.error || !postRes.data) {
@@ -113,8 +175,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
   }
 
   const postRow: BoardDetailRow = postRes.data;
+  const isAdmin = viewerProfile?.role === "admin";
 
-  if (postRow.is_secret && user?.id !== postRow.user_id) {
+  if (postRow.is_secret && user?.id !== postRow.user_id && !isAdmin) {
     return { notFound: true };
   }
 
@@ -134,11 +197,10 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
   let initialLiked = false;
 
   if (user?.id) {
-    const viewerNickRes = await getViewerNickname(db, { userId: user.id });
     viewer = {
       id: user.id,
-      nickname: viewerNickRes.nickname ?? "Unknown",
-      profileImagePath: viewerNickRes.profileImagePath ?? null,
+      nickname: viewerProfile?.nickname ?? "Unknown",
+      profileImagePath: viewerProfile?.profile_image_path ?? null,
     };
 
     const likedRes = await db
@@ -222,6 +284,7 @@ export default function BoardDetailPage({
   viewer,
 }: PageProps) {
   const router = useRouter();
+  const isOwnSecretPost = post.is_secret && viewer?.id === post.user_id;
 
   useEffect(() => {
     if (!post?.id) return;
@@ -256,10 +319,21 @@ export default function BoardDetailPage({
   const [newComment, setNewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [postActionLoading, setPostActionLoading] = useState(false);
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
+  const [selectedReportReason, setSelectedReportReason] =
+    useState<ReportReason>("spam");
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportPopoverPosition, setReportPopoverPosition] =
+    useState<ReportPopoverPosition | null>(null);
 
   const [replyOpenId, setReplyOpenId] = useState<number | null>(null);
   const [replyExpandedMap, setReplyExpandedMap] = useState<Record<number, boolean>>({});
   const [replyTextMap, setReplyTextMap] = useState<Record<number, string>>({});
+  const [openCommentMenuId, setOpenCommentMenuId] = useState<number | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+  const [editingCommentText, setEditingCommentText] = useState("");
+  const [commentActionLoadingId, setCommentActionLoadingId] = useState<number | null>(null);
 
   const [commentLikeState, setCommentLikeState] = useState<
     Record<number, { liked: boolean; count: number }>
@@ -286,6 +360,29 @@ export default function BoardDetailPage({
     }
     return map;
   }, [comments]);
+
+  useEffect(() => {
+    if (!reportTarget) return;
+
+    function handlePointerDown(event: MouseEvent) {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("[data-report-popover]")) return;
+
+      closeReportDialog();
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") closeReportDialog();
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [reportSubmitting, reportTarget]);
 
   async function handleCreateComment(parentCommentId: number | null = null) {
     const content =
@@ -446,6 +543,288 @@ export default function BoardDetailPage({
     });
   }
 
+  function isOwnComment(comment: CommentVM) {
+    return viewer?.id === comment.user_id;
+  }
+
+  function startEditComment(comment: CommentVM) {
+    if (!isOwnComment(comment)) return;
+
+    setEditingCommentId(comment.id);
+    setEditingCommentText(comment.content);
+    setOpenCommentMenuId(null);
+  }
+
+  function cancelEditComment() {
+    setEditingCommentId(null);
+    setEditingCommentText("");
+  }
+
+  async function saveEditComment(comment: CommentVM) {
+    const nextContent = editingCommentText.trim();
+
+    if (!nextContent) {
+      alert("댓글 내용을 입력해주세요.");
+      return;
+    }
+
+    setCommentActionLoadingId(comment.id);
+
+    try {
+      const { error } = await supabase
+        .from("post_comments")
+        .update({ content: nextContent })
+        .eq("id", comment.id)
+        .eq("user_id", viewer?.id ?? "");
+
+      if (error) throw error;
+
+      setComments((prev) =>
+        prev.map((item) =>
+          item.id === comment.id ? { ...item, content: nextContent } : item
+        )
+      );
+      cancelEditComment();
+    } catch (error) {
+      console.error(error);
+      alert("댓글 수정 중 오류가 발생했습니다.");
+    } finally {
+      setCommentActionLoadingId(null);
+    }
+  }
+
+  async function deleteComment(comment: CommentVM) {
+    if (!isOwnComment(comment)) return;
+
+    const confirmed = window.confirm("댓글을 삭제할까요?");
+    if (!confirmed) return;
+
+    setCommentActionLoadingId(comment.id);
+    setOpenCommentMenuId(null);
+
+    try {
+      const { error } = await supabase
+        .from("post_comments")
+        .delete()
+        .eq("id", comment.id)
+        .eq("user_id", viewer?.id ?? "");
+
+      if (error) throw error;
+
+      setComments((prev) => {
+        const removedIds = new Set<number>([comment.id]);
+        for (const item of prev) {
+          if (item.parent_comment_id === comment.id) removedIds.add(item.id);
+        }
+
+        setCommentCount((count) => Math.max(0, count - removedIds.size));
+        return prev.filter((item) => !removedIds.has(item.id));
+      });
+
+      if (editingCommentId === comment.id) cancelEditComment();
+    } catch (error) {
+      console.error(error);
+      alert("댓글 삭제 중 오류가 발생했습니다.");
+    } finally {
+      setCommentActionLoadingId(null);
+    }
+  }
+
+  function openReportDialog(target: ReportTarget, anchor: HTMLElement) {
+    const rect = anchor.getBoundingClientRect();
+    const popoverWidth = Math.min(320, window.innerWidth - 24);
+    const estimatedPopoverHeight = 340;
+    const placement = rect.top > estimatedPopoverHeight + 16 ? "above" : "below";
+
+    setSelectedReportReason("spam");
+    setReportTarget(target);
+    setReportPopoverPosition({
+      top:
+        placement === "above"
+          ? Math.max(estimatedPopoverHeight + 12, rect.top - 10)
+          : Math.max(
+              12,
+              Math.min(rect.bottom + 10, window.innerHeight - estimatedPopoverHeight - 12)
+            ),
+      left: Math.min(
+        Math.max(rect.right, popoverWidth + 12),
+        window.innerWidth - 12
+      ),
+      placement,
+    });
+  }
+
+  function closeReportDialog() {
+    if (reportSubmitting) return;
+
+    setReportTarget(null);
+    setReportPopoverPosition(null);
+    setSelectedReportReason("spam");
+  }
+
+  function reportComment(comment: CommentVM, anchor: HTMLElement) {
+    setOpenCommentMenuId(null);
+
+    if (!viewer) {
+      setLoginModalOpen(true);
+      return;
+    }
+
+    openReportDialog({ type: "comment", comment }, anchor);
+  }
+
+  async function submitReport() {
+    if (!viewer) {
+      setLoginModalOpen(true);
+      return;
+    }
+
+    if (!reportTarget || reportSubmitting) return;
+
+    setReportSubmitting(true);
+
+    const targetLabel = reportTarget.type === "post" ? "게시글" : "댓글";
+
+    if (reportTarget.type === "comment") {
+      setCommentActionLoadingId(reportTarget.comment.id);
+    } else {
+      setPostActionLoading(true);
+    }
+
+    try {
+      const { error } =
+        reportTarget.type === "comment"
+          ? await supabase.from("comment_reports").insert({
+              comment_id: reportTarget.comment.id,
+              reporter_id: viewer.id,
+              reason: selectedReportReason,
+            })
+          : await supabase.from("post_reports").insert({
+              post_id: reportTarget.postId,
+              reporter_id: viewer.id,
+              reason: selectedReportReason,
+            });
+
+      if (error) throw error;
+
+      alert(`${targetLabel} 신고가 접수되었습니다.`);
+      setReportTarget(null);
+      setReportPopoverPosition(null);
+      setSelectedReportReason("spam");
+    } catch (error) {
+      console.error(error);
+      alert(getReportErrorMessage(error, targetLabel));
+    } finally {
+      setReportSubmitting(false);
+      setCommentActionLoadingId(null);
+      setPostActionLoading(false);
+    }
+  }
+
+  function isOwnPost() {
+    return viewer?.id === post.user_id;
+  }
+
+  function startEditPost() {
+    if (!isOwnPost()) return;
+
+    void router.push(`/community/board/write?edit=${post.id}`);
+  }
+
+  async function deletePost() {
+    if (!isOwnPost()) return;
+
+    const confirmed = window.confirm("게시글을 삭제할까요?");
+    if (!confirmed) return;
+
+    setPostActionLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from("posts")
+        .delete()
+        .eq("id", post.id)
+        .eq("user_id", viewer?.id ?? "");
+
+      if (error) throw error;
+
+      const storagePaths = images.map((image) => image.storage_path);
+      if (storagePaths.length > 0) {
+        await supabase.storage.from(POST_IMAGE_BUCKET).remove(storagePaths);
+      }
+
+      await router.push("/community/board");
+    } catch (error) {
+      console.error(error);
+      alert("게시글 삭제 중 오류가 발생했습니다.");
+      setPostActionLoading(false);
+    }
+  }
+
+  function reportPost(anchor: HTMLElement) {
+    if (!viewer) {
+      setLoginModalOpen(true);
+      return;
+    }
+
+    openReportDialog({ type: "post", postId: post.id }, anchor);
+  }
+
+  function renderCommentMenu(comment: CommentVM) {
+    const own = isOwnComment(comment);
+
+    return (
+      <div className={styles.commentMenuWrap}>
+        <button
+          type="button"
+          className={styles.commentMenuButton}
+          onClick={() =>
+            setOpenCommentMenuId((current) =>
+              current === comment.id ? null : comment.id
+            )
+          }
+          aria-label="댓글 메뉴"
+        >
+          <MoreHorizontal size={17} strokeWidth={1.8} />
+        </button>
+
+        {openCommentMenuId === comment.id && (
+          <div className={styles.commentDropdown}>
+            {own ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => startEditComment(comment)}
+                  disabled={commentActionLoadingId === comment.id}
+                >
+                  <Pencil size={14} strokeWidth={1.8} />
+                  <span>수정</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deleteComment(comment)}
+                  disabled={commentActionLoadingId === comment.id}
+                >
+                  <Trash2 size={14} strokeWidth={1.8} />
+                  <span>삭제</span>
+                </button>
+              </>
+            ) : (
+	              <button
+	                type="button"
+	                onClick={(event) => reportComment(comment, event.currentTarget)}
+	                disabled={commentActionLoadingId === comment.id}
+	              >
+                <Flag size={14} strokeWidth={1.8} />
+                <span>신고</span>
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <>
       <Head>
@@ -456,7 +835,15 @@ export default function BoardDetailPage({
         <div className={`${styles.container} px-8 sm:px-12 md:px-16`}>
           <article className={styles.article}>
             <header className={`${styles.header} border-b border-white/20`}>
-              <h1 className={styles.title}>{post.title}</h1>
+              <div className={styles.titleRow}>
+                <h1 className={styles.title}>{post.title}</h1>
+                {isOwnSecretPost && (
+                  <span className={styles.secretBadge}>
+                    <LockKeyhole size={14} strokeWidth={1.8} aria-hidden="true" />
+                    내 비밀글
+                  </span>
+                )}
+              </div>
 
               <div className={styles.metaRow}>
                 <div className={styles.metaLeft}>
@@ -486,7 +873,9 @@ export default function BoardDetailPage({
                 dangerouslySetInnerHTML={{ __html: post.content }}
               />
             ) : (
-              <div className={styles.body}>{renderMultilineText(post.content)}</div>
+              <div className={styles.body}>
+                {renderMultilineText(post.content)}
+              </div>
             )}
           </article>
 
@@ -517,29 +906,73 @@ export default function BoardDetailPage({
           )}
 
           <section className={styles.countSection}>
-            <div className={styles.countInner}>
-              <button
-                type="button"
-                onClick={handlePostLike}
-                disabled={isLikeLoading}
-                className={styles.postLikeButton}
-              >
-                <Heart
-                  size={18}
-                  className={isLiked ? styles.postLikeIconActive : styles.postLikeIcon}
-                />
-                <span>좋아요 {likeCount}</span>
-              </button>
-              <span className={styles.dot}>·</span>
-              <span className={styles.countMetric}>
-                <MessageCircle size={18} />
-                <span>댓글 {commentCount}</span>
-              </span>
+            <div className={styles.countActionRow}>
+              <div className={styles.countInner}>
+                <button
+                  type="button"
+                  onClick={handlePostLike}
+                  disabled={isLikeLoading}
+                  className={styles.postLikeButton}
+                >
+                  <Heart
+                    size={18}
+                    className={isLiked ? styles.postLikeIconActive : styles.postLikeIcon}
+                  />
+                  <span>좋아요 {likeCount}</span>
+                </button>
+                <span className={styles.dot}>·</span>
+                <span className={styles.countMetric}>
+                  <MessageCircle size={18} />
+                  <span>댓글 {commentCount}</span>
+                </span>
+              </div>
+
+              <div className={styles.postActionButtons}>
+                {isOwnPost() ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={startEditPost}
+                      disabled={postActionLoading}
+                    >
+                      <Pencil size={14} strokeWidth={1.8} />
+                      <span>수정</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={deletePost}
+                      disabled={postActionLoading}
+                    >
+                      <Trash2 size={14} strokeWidth={1.8} />
+                      <span>삭제</span>
+                    </button>
+                  </>
+                ) : (
+	                  <button
+	                    type="button"
+	                    onClick={(event) => reportPost(event.currentTarget)}
+	                    disabled={postActionLoading}
+	                  >
+                    <Flag size={14} strokeWidth={1.8} />
+                    <span>신고</span>
+                  </button>
+                )}
+              </div>
             </div>
           </section>
 
           <section className={styles.commentSection}>
-            <div className={styles.commentComposer}>
+            <div
+              className={[
+                styles.commentComposer,
+                newComment.trim() ? styles.commentComposerActive : "",
+              ].join(" ")}
+            >
+              <ProfileAvatar
+                imagePath={viewer?.profileImagePath}
+                className="h-10 w-10 shrink-0 ring-1 ring-white/10"
+                sizes="40px"
+              />
               <textarea
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
@@ -549,7 +982,7 @@ export default function BoardDetailPage({
               <button
                 type="button"
                 onClick={() => handleCreateComment(null)}
-                disabled={submitting}
+                disabled={submitting || !newComment.trim()}
               >
                 등록
               </button>
@@ -566,24 +999,65 @@ export default function BoardDetailPage({
                     liked: false,
                     count: 0,
                   };
+                  const replyThreadOpen =
+                    (replies.length > 0 && repliesExpanded) ||
+                    replyOpenId === comment.id;
 
                   return (
-                    <div key={comment.id} className={styles.commentBlock}>
+                    <div
+                      key={comment.id}
+                      className={[
+                        styles.commentBlock,
+                        replyThreadOpen ? styles.commentBlockWithReplyThread : "",
+                      ].join(" ")}
+                    >
                       <div className={styles.commentCard}>
-                        <div className={styles.commentMeta}>
-                          <ProfileAvatar
-                            imagePath={comment.profileImagePath}
-                            className="h-6 w-6 shrink-0 ring-1 ring-white/10"
-                            sizes="24px"
-                          />
-                          <span className={styles.commentNickname}>{comment.nickname}</span>
-                          <span className={styles.dot}>·</span>
-                          <span>{formatDate(comment.created_at)}</span>
+                        <div className={styles.commentMetaRow}>
+                          <div className={styles.commentMeta}>
+                            <ProfileAvatar
+                              imagePath={comment.profileImagePath}
+                              className="h-6 w-6 shrink-0 ring-1 ring-white/10"
+                              sizes="24px"
+                            />
+                            <span className={styles.commentNickname}>{comment.nickname}</span>
+                            <span className={styles.dot}>·</span>
+                            <span>{formatDate(comment.created_at)}</span>
+                          </div>
+                          {renderCommentMenu(comment)}
                         </div>
 
-                        <div className={styles.commentContent}>
-                          {renderMultilineText(comment.content)}
-                        </div>
+                        {editingCommentId === comment.id ? (
+                          <div className={styles.editCommentComposer}>
+                            <textarea
+                              value={editingCommentText}
+                              onChange={(e) => setEditingCommentText(e.target.value)}
+                              disabled={commentActionLoadingId === comment.id}
+                            />
+                            <div className={styles.editCommentActions}>
+                              <button
+                                type="button"
+                                onClick={cancelEditComment}
+                                disabled={commentActionLoadingId === comment.id}
+                              >
+                                취소
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => saveEditComment(comment)}
+                                disabled={
+                                  commentActionLoadingId === comment.id ||
+                                  !editingCommentText.trim()
+                                }
+                              >
+                                저장
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className={styles.commentContent}>
+                            {renderMultilineText(comment.content)}
+                          </div>
+                        )}
 
                         <div className={styles.commentActions}>
                           <button
@@ -629,8 +1103,7 @@ export default function BoardDetailPage({
 
                       </div>
 
-                      {((replies.length > 0 && repliesExpanded) ||
-                        replyOpenId === comment.id) && (
+                      {replyThreadOpen && (
                         <div className={styles.replyThread}>
                           {replies.length > 0 && repliesExpanded && (
                             <div className={styles.replyList}>
@@ -649,20 +1122,54 @@ export default function BoardDetailPage({
                                     />
 
                                     <div className={styles.replyCard}>
-                                      <div className={styles.commentMeta}>
-                                        <ProfileAvatar
-                                          imagePath={reply.profileImagePath}
-                                          className="h-7 w-7 shrink-0 ring-1 ring-white/10"
-                                          sizes="28px"
-                                        />
-                                        <span className={styles.commentNickname}>{reply.nickname}</span>
-                                        <span className={styles.dot}>·</span>
-                                        <span>{formatDate(reply.created_at)}</span>
+                                      <div className={styles.commentMetaRow}>
+                                        <div className={styles.commentMeta}>
+                                          <ProfileAvatar
+                                            imagePath={reply.profileImagePath}
+                                            className="h-7 w-7 shrink-0 ring-1 ring-white/10"
+                                            sizes="28px"
+                                          />
+                                          <span className={styles.commentNickname}>{reply.nickname}</span>
+                                          <span className={styles.dot}>·</span>
+                                          <span>{formatDate(reply.created_at)}</span>
+                                        </div>
+                                        {renderCommentMenu(reply)}
                                       </div>
 
-                                      <div className={styles.commentContent}>
-                                        {renderMultilineText(reply.content)}
-                                      </div>
+                                      {editingCommentId === reply.id ? (
+                                        <div className={styles.editCommentComposer}>
+                                          <textarea
+                                            value={editingCommentText}
+                                            onChange={(e) =>
+                                              setEditingCommentText(e.target.value)
+                                            }
+                                            disabled={commentActionLoadingId === reply.id}
+                                          />
+                                          <div className={styles.editCommentActions}>
+                                            <button
+                                              type="button"
+                                              onClick={cancelEditComment}
+                                              disabled={commentActionLoadingId === reply.id}
+                                            >
+                                              취소
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => saveEditComment(reply)}
+                                              disabled={
+                                                commentActionLoadingId === reply.id ||
+                                                !editingCommentText.trim()
+                                              }
+                                            >
+                                              저장
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className={styles.commentContent}>
+                                          {renderMultilineText(reply.content)}
+                                        </div>
+                                      )}
 
                                       <div className={styles.commentActions}>
                                         <button
@@ -693,31 +1200,58 @@ export default function BoardDetailPage({
                           )}
 
                           {replyOpenId === comment.id && (
-                            <div className={styles.replyComposer}>
-                              <textarea
-                                value={replyTextMap[comment.id] ?? ""}
-                                onChange={(e) => handleReplyTextChange(comment.id, e)}
-                                onFocus={(e) => resizeTextarea(e.currentTarget)}
-                                placeholder="답글을 입력해주세요."
-                                disabled={submitting}
+                            <div
+                              className={[
+                                styles.replyComposer,
+                                (replyTextMap[comment.id] ?? "").trim()
+                                ? styles.replyComposerActive
+                                : "",
+                            ].join(" ")}
+                          >
+                              <CornerDownRight
+                                size={18}
+                                className={`${styles.replyArrow} ${styles.replyComposerArrow}`}
+                                aria-hidden="true"
                               />
 
-                              <div className={styles.replyComposerButtons}>
-                                <button
-                                  type="button"
-                                  className={styles.ghostButton}
-                                  onClick={() => setReplyOpenId(null)}
-                                  disabled={submitting}
-                                >
-                                  취소
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleCreateComment(comment.id)}
-                                  disabled={submitting}
-                                >
-                                  답글 등록
-                                </button>
+                              <div className={styles.replyComposerBody}>
+                                <ProfileAvatar
+                                  imagePath={viewer?.profileImagePath}
+                                  className={`${styles.replyComposerAvatar} h-8 w-8 shrink-0 ring-1 ring-white/10`}
+                                  sizes="32px"
+                                />
+
+                                <div className={styles.replyComposerField}>
+                                  <textarea
+                                    value={replyTextMap[comment.id] ?? ""}
+                                    onChange={(e) => handleReplyTextChange(comment.id, e)}
+                                    onFocus={(e) => resizeTextarea(e.currentTarget)}
+                                    placeholder="답글을 입력해주세요."
+                                    wrap="off"
+                                    disabled={submitting}
+                                  />
+
+                                  <div className={styles.replyComposerButtons}>
+                                    <button
+                                      type="button"
+                                      className={styles.ghostButton}
+                                      onClick={() => setReplyOpenId(null)}
+                                      disabled={submitting}
+                                    >
+                                      취소
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCreateComment(comment.id)}
+                                      disabled={
+                                        submitting ||
+                                        !(replyTextMap[comment.id] ?? "").trim()
+                                      }
+                                    >
+                                      답글 등록
+                                    </button>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           )}
@@ -741,6 +1275,7 @@ export default function BoardDetailPage({
             <div className={styles.allPostsList}>
               {allPosts.map((item) => {
                 const isCurrent = item.id === post.id;
+                const isOwnSecretItem = item.is_secret && item.user_id === viewer?.id;
 
                 return (
                   <Link
@@ -749,12 +1284,23 @@ export default function BoardDetailPage({
                     className={`${styles.allPostRow} ${
                       isCurrent ? styles.currentPostRow : ""
                     }`}
-                  >
-                    <span className={styles.allPostTitle}>{item.title}</span>
-                    <span className={styles.allPostDate}>
-                      {formatDate(item.created_at)}
-                    </span>
-                  </Link>
+	                  >
+	                    <span className={styles.allPostInfo}>
+	                      <span className={styles.allPostTitleWrap}>
+	                        <span className={styles.allPostTitle}>{item.title}</span>
+	                        {isOwnSecretItem && (
+	                          <span className={styles.allPostSecretBadge}>
+	                            <LockKeyhole size={12} strokeWidth={1.8} aria-hidden="true" />
+	                            내 비밀글
+	                          </span>
+	                        )}
+	                      </span>
+	                      <span className={styles.allPostMeta}>
+	                        <span className={styles.allPostAuthor}>{item.author_nickname}</span>
+	                        <span className={styles.allPostDate}>{formatDate(item.created_at)}</span>
+	                      </span>
+	                    </span>
+	                  </Link>
                 );
               })}
             </div>
@@ -762,11 +1308,75 @@ export default function BoardDetailPage({
         </div>
       </main>
 
-      <LoginRequiredModal
-        open={loginModalOpen}
-        onClose={() => setLoginModalOpen(false)}
-        nextPath={router.asPath}
-      />
-    </>
-  );
-}
+	      <LoginRequiredModal
+	        open={loginModalOpen}
+	        onClose={() => setLoginModalOpen(false)}
+	        nextPath={router.asPath}
+	      />
+
+	      {reportTarget && reportPopoverPosition && (
+	        <section
+	          className={styles.reportPopover}
+	          style={{
+	            top: reportPopoverPosition.top,
+	            left: reportPopoverPosition.left,
+	            transform:
+	              reportPopoverPosition.placement === "above"
+	                ? "translate(-100%, -100%)"
+	                : "translate(-100%, 0)",
+	          }}
+	          role="dialog"
+	          aria-modal="false"
+	          aria-labelledby="report-popover-title"
+	          data-report-popover
+	        >
+	          <div className={styles.reportPopoverHeader}>
+	            <h2 id="report-popover-title">
+	              {reportTarget.type === "post" ? "게시글 신고" : "댓글 신고"}
+	            </h2>
+	            <button
+	              type="button"
+	              onClick={closeReportDialog}
+	              disabled={reportSubmitting}
+	              aria-label="신고 창 닫기"
+	            >
+	              ×
+	            </button>
+	          </div>
+
+	          <div className={styles.reportReasonList}>
+	            {REPORT_REASONS.map((reason) => (
+	              <label key={reason.value} className={styles.reportReasonItem}>
+	                <input
+	                  type="checkbox"
+	                  value={reason.value}
+	                  checked={selectedReportReason === reason.value}
+	                  onChange={() => setSelectedReportReason(reason.value)}
+	                  disabled={reportSubmitting}
+	                />
+	                <span>{reason.label}</span>
+	              </label>
+	            ))}
+	          </div>
+
+	          <div className={styles.reportPopoverActions}>
+	            <button
+	              type="button"
+	              onClick={closeReportDialog}
+	              disabled={reportSubmitting}
+	            >
+	              취소
+	            </button>
+	            <button
+	              type="button"
+	              onClick={submitReport}
+	              disabled={reportSubmitting}
+	            >
+	              {reportSubmitting ? "접수 중..." : "신고하기"}
+	            </button>
+	          </div>
+	        </section>
+	      )}
+	    </>
+	  );
+	}

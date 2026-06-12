@@ -39,12 +39,12 @@ export const POST_BACKGROUND_COLORS = [
 ];
 
 export const POST_BASIC_IMAGES = [
-  { label: "Basic 1", path: "post_basic_image/basic_1.jpeg" },
-  { label: "Basic 2", path: "post_basic_image/basic_2.jpg" },
-  { label: "Basic 3", path: "post_basic_image/basic_3.jpg" },
-  { label: "Basic 4", path: "post_basic_image/basic_4.jpg" },
-  { label: "Basic 5", path: "post_basic_image/basic_5.jpg" },
-  { label: "Basic 6", path: "post_basic_image/basic_6.jpg" },
+  { label: "Basic 1 : Forest", path: "post_basic_image/basic_1.jpeg" },
+  { label: "Basic 2 : Rain", path: "post_basic_image/basic_2.jpg" },
+  { label: "Basic 3 : City", path: "post_basic_image/basic_3.jpg" },
+  { label: "Basic 4 : Galaxy", path: "post_basic_image/basic_4.jpg" },
+  { label: "Basic 5 : Ocean", path: "post_basic_image/basic_5.jpg" },
+  { label: "Basic 6 : Fireplace", path: "post_basic_image/basic_6.jpg" },
 ];
 
 const emptySelection: PostBackgroundSelection = { type: "none", value: null };

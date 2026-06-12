@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Heart, X } from "lucide-react";
+import { Heart, Pencil, Trash2, X } from "lucide-react";
 import { FaUser } from "react-icons/fa6";
 
 export type RequestDetailItem = {
@@ -19,6 +19,11 @@ type RequestDetailModalProps = {
   busy: boolean;
   onToggleLike: (requestId: number) => Promise<void>;
   onClose: () => void;
+  showLikeAction?: boolean;
+  isOwn?: boolean;
+  actionBusy?: boolean;
+  onEdit?: (request: RequestDetailItem) => void;
+  onDelete?: (request: RequestDetailItem) => Promise<void>;
 };
 
 export default function RequestDetailModal({
@@ -28,6 +33,11 @@ export default function RequestDetailModal({
   busy,
   onToggleLike,
   onClose,
+  showLikeAction = true,
+  isOwn = false,
+  actionBusy = false,
+  onEdit,
+  onDelete,
 }: RequestDetailModalProps) {
   useEffect(() => {
     function handleEsc(e: KeyboardEvent) {
@@ -104,25 +114,54 @@ export default function RequestDetailModal({
             </p>
           </section>
 
-          <div className="flex items-center gap-5">
+          <div className="flex flex-wrap items-center gap-4">
+            {isOwn ? (
+              <div className="flex shrink-0 items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => onEdit?.(request)}
+                  disabled={actionBusy}
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-white/58 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Pencil size={14} strokeWidth={1.8} />
+                  수정
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void onDelete?.(request)}
+                  disabled={actionBusy}
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-white/58 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <Trash2 size={14} strokeWidth={1.8} />
+                  삭제
+                </button>
+              </div>
+            ) : null}
             <div className="h-px flex-1 bg-white/12" />
-            <button
-              type="button"
-              onClick={() => void onToggleLike(request.id)}
-              disabled={busy}
-              className="inline-flex shrink-0 items-center gap-2 text-base font-semibold text-white/86 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-              aria-label={liked ? "좋아요 취소" : "좋아요"}
-            >
-              <Heart
-                size={20}
-                className={
-                  liked
-                    ? "fill-red-500 text-red-500"
-                    : "text-red-400 transition hover:fill-red-500 hover:text-red-500"
-                }
-              />
-              {request.like_count.toLocaleString()}
-            </button>
+            {showLikeAction ? (
+              <button
+                type="button"
+                onClick={() => void onToggleLike(request.id)}
+                disabled={busy}
+                className="inline-flex shrink-0 items-center gap-2 text-base font-semibold text-white/86 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label={liked ? "좋아요 취소" : "좋아요"}
+              >
+                <Heart
+                  size={20}
+                  className={
+                    liked
+                      ? "fill-red-500 text-red-500"
+                      : "text-red-400 transition hover:fill-red-500 hover:text-red-500"
+                  }
+                />
+                {request.like_count.toLocaleString()}
+              </button>
+            ) : (
+              <span className="inline-flex shrink-0 items-center gap-2 text-base font-semibold text-white/70">
+                <Heart size={20} className="text-red-400" />
+                {request.like_count.toLocaleString()}
+              </span>
+            )}
           </div>
         </div>
       </div>

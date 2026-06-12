@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { useRouter } from "next/router";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Heart, Search } from "lucide-react";
+import { Heart, Pencil, Search, Trash2 } from "lucide-react";
 import { FaUser } from "react-icons/fa6";
 
 import CommunityTabs from "@/components/CommunityTabs";
@@ -365,16 +365,24 @@ type RequestCardProps = {
   item: RequestItem;
   liked: boolean;
   busy: boolean;
+  isOwn: boolean;
+  actionBusy: boolean;
   onToggleLike: (requestId: number) => Promise<void>;
   onOpenDetail: (item: RequestItem) => void;
+  onEdit: (item: RequestItem) => void;
+  onDelete: (item: RequestItem) => Promise<void>;
 };
 
 function RequestTopCard({
   item,
   liked,
   busy,
+  isOwn,
+  actionBusy,
   onToggleLike,
   onOpenDetail,
+  onEdit,
+  onDelete,
 }: RequestCardProps) {
   const uploadStatus = getUploadStatus(item.upload_date);
 
@@ -396,7 +404,35 @@ function RequestTopCard({
           <FaUser size={12} aria-hidden="true" />
           <span>{item.nickname}</span>
         </span>
-        <span className="date">{formatDate(item.created_at)}</span>
+        <span className={styles.topCardMetaRight}>
+          <span className="date">{formatDate(item.created_at)}</span>
+          {isOwn ? (
+            <span className={styles.requestActions}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(item);
+                }}
+                disabled={actionBusy}
+                aria-label="곡 신청 수정"
+              >
+                <Pencil size={13} strokeWidth={1.8} />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void onDelete(item);
+                }}
+                disabled={actionBusy}
+                aria-label="곡 신청 삭제"
+              >
+                <Trash2 size={13} strokeWidth={1.8} />
+              </button>
+            </span>
+          ) : null}
+        </span>
       </div>
 
       <h3 className={styles.topCardTitle}>
@@ -453,16 +489,24 @@ type RequestListRowProps = {
   item: RequestItem;
   liked: boolean;
   busy: boolean;
+  isOwn: boolean;
+  actionBusy: boolean;
   onToggleLike: (requestId: number) => Promise<void>;
   onOpenDetail: (item: RequestItem) => void;
+  onEdit: (item: RequestItem) => void;
+  onDelete: (item: RequestItem) => Promise<void>;
 };
 
 function RequestListRow({
   item,
   liked,
   busy,
+  isOwn,
+  actionBusy,
   onToggleLike,
   onOpenDetail,
+  onEdit,
+  onDelete,
 }: RequestListRowProps) {
   return (
     <tr>
@@ -493,6 +537,28 @@ function RequestListRow({
           <span>{item.like_count.toLocaleString()}</span>
         </button>
       </td>
+      <td className={styles.actionCell}>
+        {isOwn ? (
+          <span className={styles.requestActions}>
+            <button
+              type="button"
+              onClick={() => onEdit(item)}
+              disabled={actionBusy}
+              aria-label="곡 신청 수정"
+            >
+              <Pencil size={14} strokeWidth={1.8} />
+            </button>
+            <button
+              type="button"
+              onClick={() => void onDelete(item)}
+              disabled={actionBusy}
+              aria-label="곡 신청 삭제"
+            >
+              <Trash2 size={14} strokeWidth={1.8} />
+            </button>
+          </span>
+        ) : null}
+      </td>
     </tr>
   );
 }
@@ -517,8 +583,10 @@ export default function RequestPage({
     new Set(likedRequestIds)
   );
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [requestActionBusyId, setRequestActionBusyId] = useState<number | null>(null);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingRequest, setEditingRequest] = useState<RequestItem | null>(null);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<RequestItem | null>(
     null
@@ -751,6 +819,72 @@ export default function RequestPage({
     }
   }
 
+  async function handleUpdated(updated: CreatedRequestRow) {
+    try {
+      const [updatedItem] = await attachNicknames(supabase, [updated]);
+      if (!updatedItem) return;
+
+      setTopRequests((prev) =>
+        prev.map((item) => (item.id === updatedItem.id ? updatedItem : item))
+      );
+      setListRequests((prev) =>
+        prev.map((item) => (item.id === updatedItem.id ? updatedItem : item))
+      );
+      setSelectedRequest((prev) =>
+        prev && prev.id === updatedItem.id ? updatedItem : prev
+      );
+
+      void refreshVisibleData();
+    } catch (error) {
+      console.error(error);
+      void refreshVisibleData();
+    }
+  }
+
+  function openEditRequest(item: RequestItem) {
+    if (!currentUserId || item.user_id !== currentUserId) return;
+
+    setSelectedRequest(null);
+    setEditingRequest(item);
+    setIsCreateModalOpen(true);
+  }
+
+  async function deleteRequest(item: RequestItem) {
+    if (!currentUserId || item.user_id !== currentUserId) return;
+    if (requestActionBusyId !== null) return;
+
+    const confirmed = window.confirm(`"${item.title}" 곡 신청을 삭제할까요?`);
+    if (!confirmed) return;
+
+    setRequestActionBusyId(item.id);
+
+    try {
+      const { error } = await supabase
+        .from("requests")
+        .delete()
+        .eq("id", item.id)
+        .eq("user_id", currentUserId);
+
+      if (error) throw error;
+
+      setTopRequests((prev) => prev.filter((request) => request.id !== item.id));
+      setListRequests((prev) => prev.filter((request) => request.id !== item.id));
+      setSelectedRequest((prev) => (prev?.id === item.id ? null : prev));
+      setLikedSet((prev) => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
+
+      void refreshVisibleData();
+    } catch (error) {
+      console.error(error);
+      alert("곡 신청 삭제 중 오류가 발생했습니다.");
+    } finally {
+      setRequestActionBusyId(null);
+    }
+  }
+
   const toggleLike = async (requestId: number) => {
     if (!currentUserId) {
       setLoginModalOpen(true);
@@ -875,8 +1009,12 @@ export default function RequestPage({
                 item={item}
                 liked={likedSet.has(item.id)}
                 busy={busyId === item.id}
+                isOwn={item.user_id === currentUserId}
+                actionBusy={requestActionBusyId === item.id}
                 onToggleLike={toggleLike}
                 onOpenDetail={setSelectedRequest}
+                onEdit={openEditRequest}
+                onDelete={deleteRequest}
               />
             ))}
           </div>
@@ -923,6 +1061,7 @@ export default function RequestPage({
                   <th>작성자</th>
                   <th>작성일</th>
                   <th>좋아요</th>
+                  <th>관리</th>
                 </tr>
               </thead>
               <tbody>
@@ -933,13 +1072,17 @@ export default function RequestPage({
                       item={item}
                       liked={likedSet.has(item.id)}
                       busy={busyId === item.id}
+                      isOwn={item.user_id === currentUserId}
+                      actionBusy={requestActionBusyId === item.id}
                       onToggleLike={toggleLike}
                       onOpenDetail={setSelectedRequest}
+                      onEdit={openEditRequest}
+                      onDelete={deleteRequest}
                     />
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className={styles.emptyRow}>
+                    <td colSpan={5} className={styles.emptyRow}>
                       아직 등록된 곡 신청이 없습니다.
                     </td>
                   </tr>
@@ -972,8 +1115,13 @@ export default function RequestPage({
 
       <RequestCreateModal
         open={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setEditingRequest(null);
+        }}
+        initialRequest={editingRequest}
         onCreated={handleCreated}
+        onUpdated={handleUpdated}
       />
 
       <RequestDetailModal
@@ -995,6 +1143,16 @@ export default function RequestPage({
         busy={selectedRequest ? busyId === selectedRequest.id : false}
         onToggleLike={toggleLike}
         onClose={() => setSelectedRequest(null)}
+        isOwn={selectedRequest?.user_id === currentUserId}
+        actionBusy={
+          selectedRequest ? requestActionBusyId === selectedRequest.id : false
+        }
+        onEdit={() => {
+          if (selectedRequest) openEditRequest(selectedRequest);
+        }}
+        onDelete={async () => {
+          if (selectedRequest) await deleteRequest(selectedRequest);
+        }}
       />
 
       <LoginRequiredModal

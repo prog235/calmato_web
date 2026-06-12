@@ -544,7 +544,7 @@ export default function About() {
             exhibitionMode ? "top-36 overflow-y-auto" : "top-0 overflow-hidden",
           ].join(" ")}
         >
-          <AnimatePresence initial={false} custom={direction}>
+          <AnimatePresence custom={direction}>
             <motion.div
               key={index}
               custom={direction}

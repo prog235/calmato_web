@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { Heart, MessageCircle, Eye } from "lucide-react";
+import { Eye, Heart, LockKeyhole, MessageCircle } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import LoginRequiredModal from "@/components/LoginRequiredModal";
 import ProfileAvatar from "@/components/ProfileAvatar";
@@ -12,6 +12,7 @@ type PostCardProps = {
   href: string;
   postId: number;
   isLocked: boolean;
+  isOwnSecret: boolean;
 
   nickname: string;
   profileImagePath?: string | null;
@@ -45,6 +46,7 @@ export default function PostCard(props: PostCardProps) {
     href,
     postId,
     isLocked,
+    isOwnSecret,
     nickname,
     profileImagePath,
     createdAt,
@@ -166,7 +168,13 @@ export default function PostCard(props: PostCardProps) {
                 className="h-6 w-6 shrink-0 ring-1 ring-white/10"
                 sizes="24px"
               />
-              <span className="truncate leading-none">{nickname}</span>
+              <span className="min-w-0 truncate leading-none">{nickname}</span>
+              {isOwnSecret && (
+                <span className="inline-flex h-6 shrink-0 items-center gap-1.5 rounded-full bg-white/10 px-2.5 text-[11px] font-medium text-white/75 ring-1 ring-white/15">
+                  <LockKeyhole size={12} aria-hidden="true" />
+                  <span className="leading-none">내 비밀글</span>
+                </span>
+              )}
             </span>
 
             <span className="flex h-6 shrink-0 items-center leading-none">

@@ -1,6 +1,9 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { getImage } from "@/lib/getUrl";
+
+const COMMUNITY_INDEX_IMAGE = getImage("assets", "community_index.jpg");
 
 export default function Community() {
   return (
@@ -15,16 +18,16 @@ export default function Community() {
             className="absolute inset-0 z-0"
           >
             <Image
-              src={"/thumbnails/ghibli/totoro.jpg"}
+              src={COMMUNITY_INDEX_IMAGE}
               alt="Free Background"
               fill
-              className="object-top object-cover"
+              className="object-cover object-[left_35%]"
               priority
             />
           </motion.div>
-            <div className="absolute left-0 top-0 h-full w-[800px] bg-gradient-to-r 
-                      from-black to-transparent opacity-70"
-            />
+          <div className="absolute left-0 top-0 h-full w-[800px] bg-gradient-to-r 
+                      from-[#0a0a0a] to-transparent opacity-50"
+          />
 
           {/* 텍스트 영역 */}
           <motion.div
@@ -34,7 +37,7 @@ export default function Community() {
             transition={{ duration: 1, ease: "easeOut" }}
           >
             <h1 className="text-4xl font-bold relative inline-block 
-              after:content-[''] after:block after:w-[500px] after:h-[2px] 
+              after:content-[''] after:block after:w-[500px] after:h-[1.1px]
               after:bg-gradient-to-r
               after:from-white after:to-transparent after:mt-3 after:rounded-full">
               자유게시판
@@ -58,15 +61,15 @@ export default function Community() {
             className="absolute inset-0 z-0"
           >
             <Image
-              src={"/thumbnails/disney/moana.jpg"}
+              src={COMMUNITY_INDEX_IMAGE}
               alt="Request Background"
               fill
-              className="object-top object-cover"
+              className="object-cover object-[left_bottom]"
               priority
             />
           </motion.div>
           <div className="absolute left-0 top-0 h-full w-[800px] bg-gradient-to-r 
-                      from-black to-transparent opacity-70"
+                      from-[#0a0a0a] to-transparent opacity-50"
           />
 
           {/* 텍스트 영역 */}
@@ -77,7 +80,7 @@ export default function Community() {
             transition={{ duration: 1, ease: "easeOut", delay: 0.8 }}
           >
             <h1 className="text-4xl font-bold relative inline-block 
-              after:content-[''] after:block after:w-[500px] after:h-[2px] 
+              after:content-[''] after:block after:w-[500px] after:h-[1.1px] 
               after:bg-gradient-to-r
               after:from-white after:to-transparent after:mt-3 after:rounded-full">
               곡 신청

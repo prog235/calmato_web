@@ -233,8 +233,11 @@ type BoardCommentRaw = {
 
 export type BoardListRow = {
   id: number;
+  user_id: string;
   title: string;
   created_at: string;
+  is_secret: boolean;
+  author_nickname: string;
 };
 
 type BoardListRaw = {
@@ -360,13 +363,31 @@ export async function getBoardSidebarList(
   }
 
   const rows = (postsRes.data as BoardListRaw[] | null) ?? [];
+  const userIds = Array.from(new Set(rows.map((row) => row.user_id)));
+  const profileMap = new Map<string, string>();
+
+  if (userIds.length > 0) {
+    const profilesRes = await db
+      .from("profiles")
+      .select("id, nickname")
+      .in("id", userIds);
+
+    if (!profilesRes.error) {
+      for (const profile of ((profilesRes.data as ProfileRowRaw[] | null) ?? [])) {
+        profileMap.set(profile.id, profile.nickname ?? "Unknown");
+      }
+    }
+  }
 
   const filtered = rows
     .filter((row) => !row.is_secret || row.user_id === params.viewerId)
     .map<BoardListRow>((row) => ({
       id: row.id,
+      user_id: row.user_id,
       title: row.title,
       created_at: row.created_at,
+      is_secret: row.is_secret,
+      author_nickname: profileMap.get(row.user_id) ?? "Unknown",
     }));
 
   return { data: filtered, error: null };

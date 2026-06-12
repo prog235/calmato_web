@@ -25,6 +25,7 @@ type CardVM = {
   id: number;
   href: string;
   isLocked: boolean;
+  isOwnSecret: boolean;
 
   nickname: string;
   profileImagePath: string | null;
@@ -221,6 +222,7 @@ export default function BoardPage(props: BoardPageProps) {
                 href={c.href}
                 postId={c.id}
                 isLocked={c.isLocked}
+                isOwnSecret={c.isOwnSecret}
                 nickname={c.nickname}
                 profileImagePath={c.profileImagePath}
                 createdAt={c.createdAt}
@@ -352,6 +354,7 @@ export const getServerSideProps: GetServerSideProps<BoardPageProps> = async (ctx
 
   const cards: CardVM[] = posts.map((p) => {
     const isLocked = Boolean(p.is_secret) && p.user_id !== viewerUserId;
+    const isOwnSecret = Boolean(p.is_secret) && p.user_id === viewerUserId;
 
     const nickname = p.profiles?.nickname ?? "Unknown";
     const profileImagePath = p.profiles?.profile_image_path ?? null;
@@ -381,6 +384,7 @@ export const getServerSideProps: GetServerSideProps<BoardPageProps> = async (ctx
       id: p.id,
       href: `/community/board/${p.id}`,
       isLocked,
+      isOwnSecret,
       nickname,
       profileImagePath,
       createdAt: p.created_at,

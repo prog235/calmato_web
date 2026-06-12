@@ -19,6 +19,23 @@ const MAX_FILE_SIZE_MB = 50;
 const WRITE_PAGE_IMAGE_SRC = getImage("assets", "write_page_image.png");
 const EMPTY_BACKGROUND_SELECTION: PostBackgroundSelection = { type: "none", value: null };
 
+type ExistingImage = {
+  storagePath: string;
+  sortOrder: number | null;
+  url: string;
+};
+
+type EditPostRow = {
+  id: number;
+  user_id: string;
+  title: string | null;
+  content: string | null;
+  is_secret: boolean | null;
+  card_background_type: string | null;
+  card_background_value: string | null;
+  post_images: { storage_path: string | null; sort_order: number | null }[] | null;
+};
+
 function formatBytes(bytes: number) {
   const mb = bytes / (1024 * 1024);
   return `${mb.toFixed(1)}MB`;
@@ -40,6 +57,23 @@ function makeObjectPath(postId: number, file: File) {
   return `post${postId}/${stamp}_${uuid}_${fname}`;
 }
 
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function splitStoragePath(path: string) {
+  const idx = path.lastIndexOf("/");
+
+  if (idx === -1) {
+    return { folder: "", name: path };
+  }
+
+  return {
+    folder: path.slice(0, idx),
+    name: path.slice(idx + 1),
+  };
+}
+
 function formatClock(date: Date) {
   return new Intl.DateTimeFormat("en-US", {
     hour: "2-digit",
@@ -56,8 +90,30 @@ function formatCalendarDate(date: Date) {
   }).format(date);
 }
 
+function getExistingBackgroundId(path: string) {
+  return `existing:${path}`;
+}
+
+function getUploadBackgroundId(idx: number) {
+  return `upload:${idx}`;
+}
+
+function isPostBackgroundKind(value: string | null): value is "color" | "uploaded" | "asset" {
+  return value === "color" || value === "uploaded" || value === "asset";
+}
+
 export default function WritePage() {
   const router = useRouter();
+  const editPostId = useMemo(() => {
+    if (!router.isReady) return null;
+
+    const raw = router.query.edit;
+    const value = Array.isArray(raw) ? raw[0] : raw;
+    const id = Number(value);
+
+    return Number.isInteger(id) && id > 0 ? id : null;
+  }, [router.isReady, router.query.edit]);
+  const isEditMode = editPostId !== null;
 
   const [ready, setReady] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -69,6 +125,9 @@ export default function WritePage() {
   const [title, setTitle] = useState("");
   const [isSecret, setIsSecret] = useState(false);
 
+  const [editLoaded, setEditLoaded] = useState(false);
+  const [existingImages, setExistingImages] = useState<ExistingImage[]>([]);
+  const [removedExistingPaths, setRemovedExistingPaths] = useState<string[]>([]);
   const [files, setFiles] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<{ file: File; url: string }[]>([]);
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
@@ -79,7 +138,10 @@ export default function WritePage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [, setEditorStateVersion] = useState(0);
-  const nextUrl = useMemo(() => "/community/board/write", []);
+  const nextUrl = useMemo(
+    () => (editPostId ? `/community/board/write?edit=${editPostId}` : "/community/board/write"),
+    [editPostId]
+  );
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -154,6 +216,99 @@ export default function WritePage() {
   }, [router, nextUrl]);
 
   useEffect(() => {
+    if (!router.isReady || !isEditMode || !editPostId || !userId || !editor) return;
+
+    let cancelled = false;
+    const editorInstance = editor;
+
+    async function loadPostForEdit() {
+      setEditLoaded(false);
+
+      const { data, error } = await supabase
+        .from("posts")
+        .select(
+          `
+            id,
+            user_id,
+            title,
+            content,
+            is_secret,
+            card_background_type,
+            card_background_value,
+            post_images(storage_path, sort_order)
+          `
+        )
+        .eq("id", editPostId)
+        .maybeSingle();
+
+      if (cancelled) return;
+
+      if (error || !data) {
+        alert("수정할 게시글을 불러오지 못했습니다.");
+        void router.replace("/community/board");
+        return;
+      }
+
+      const post = data as EditPostRow;
+
+      if (post.user_id !== userId) {
+        alert("본인 게시글만 수정할 수 있습니다.");
+        void router.replace(`/community/board/${editPostId}`);
+        return;
+      }
+
+      const images = (post.post_images ?? [])
+        .filter((image): image is { storage_path: string; sort_order: number | null } =>
+          Boolean(image.storage_path)
+        )
+        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+        .map((image) => {
+          const {
+            data: { publicUrl },
+          } = supabase.storage.from(POST_IMAGES_BUCKET).getPublicUrl(image.storage_path);
+
+          return {
+            storagePath: image.storage_path,
+            sortOrder: image.sort_order,
+            url: publicUrl,
+          };
+        });
+
+      setTitle(post.title ?? "");
+      setIsSecret(Boolean(post.is_secret));
+      setExistingImages(images);
+      setRemovedExistingPaths([]);
+      setFiles([]);
+      editorInstance.commands.setContent(post.content ?? "");
+
+      if (isPostBackgroundKind(post.card_background_type)) {
+        const nextSelection: PostBackgroundSelection =
+          post.card_background_type === "uploaded" && post.card_background_value
+            ? {
+                type: "uploaded",
+                value: getExistingBackgroundId(post.card_background_value),
+              }
+            : {
+                type: post.card_background_type,
+                value: post.card_background_value,
+              };
+
+        setSelectedBackground(nextSelection);
+      } else {
+        setSelectedBackground(EMPTY_BACKGROUND_SELECTION);
+      }
+
+      setEditLoaded(true);
+    }
+
+    void loadPostForEdit();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editPostId, editor, isEditMode, router, router.isReady, userId]);
+
+  useEffect(() => {
     const timer = window.setInterval(() => {
       setNow(new Date());
     }, 1000);
@@ -175,13 +330,39 @@ export default function WritePage() {
   }, [files]);
 
   const uploadedBackgroundOptions = useMemo(
-    () =>
-      filePreviews.map((preview, idx) => ({
-        id: `upload:${idx}`,
+    () => [
+      ...existingImages.map((image, idx) => ({
+        id: getExistingBackgroundId(image.storagePath),
+        label: `기존 이미지 ${idx + 1}`,
+        url: image.url,
+      })),
+      ...filePreviews.map((preview, idx) => ({
+        id: getUploadBackgroundId(idx),
         label: preview.file.name,
         url: preview.url,
       })),
-    [filePreviews]
+    ],
+    [existingImages, filePreviews]
+  );
+
+  const attachmentPreviewItems = useMemo(
+    () => [
+      ...existingImages.map((image, idx) => ({
+        id: getExistingBackgroundId(image.storagePath),
+        type: "existing" as const,
+        label: `기존 이미지 ${idx + 1}`,
+        url: image.url,
+        index: idx,
+      })),
+      ...filePreviews.map((preview, idx) => ({
+        id: getUploadBackgroundId(idx),
+        type: "new" as const,
+        label: preview.file.name,
+        url: preview.url,
+        index: idx,
+      })),
+    ],
+    [existingImages, filePreviews]
   );
 
   useEffect(() => {
@@ -232,7 +413,7 @@ export default function WritePage() {
     if (validFiles.length === 0) return;
 
     setFiles((prev) => {
-      const availableSlots = MAX_FILES - prev.length;
+      const availableSlots = MAX_FILES - existingImages.length - prev.length;
       if (availableSlots <= 0) {
         alert(`이미지는 최대 ${MAX_FILES}개까지 첨부할 수 있어요.`);
         return prev;
@@ -266,6 +447,65 @@ export default function WritePage() {
     setFiles((prev) => prev.filter((_, i) => i !== idx));
   }
 
+  function removeExistingImage(idx: number) {
+    const image = existingImages[idx];
+    if (!image) return;
+
+    setExistingImages((prev) => prev.filter((_, i) => i !== idx));
+    setRemovedExistingPaths((prev) =>
+      prev.includes(image.storagePath) ? prev : [...prev, image.storagePath]
+    );
+  }
+
+  async function findMissingUploadedPaths(paths: string[]) {
+    const byFolder = new Map<string, Set<string>>();
+
+    for (const path of paths) {
+      const { folder, name } = splitStoragePath(path);
+      const names = byFolder.get(folder) ?? new Set<string>();
+      names.add(name);
+      byFolder.set(folder, names);
+    }
+
+    const missing: string[] = [];
+
+    for (const [folder, expectedNames] of byFolder) {
+      const { data, error } = await supabase.storage
+        .from(POST_IMAGES_BUCKET)
+        .list(folder, { limit: 1000 });
+
+      if (error) throw error;
+
+      const existingNames = new Set((data ?? []).map((object) => object.name));
+
+      for (const name of expectedNames) {
+        if (!existingNames.has(name)) {
+          missing.push(folder ? `${folder}/${name}` : name);
+        }
+      }
+    }
+
+    return missing;
+  }
+
+  async function verifyUploadedImages(paths: string[]) {
+    if (paths.length === 0) return;
+
+    let missing = paths;
+
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      missing = await findMissingUploadedPaths(paths);
+
+      if (missing.length === 0) return;
+
+      if (attempt < 3) {
+        await wait(250 * attempt);
+      }
+    }
+
+    throw new Error(`이미지 업로드 확인 실패: ${missing.join(", ")}`);
+  }
+
   async function uploadImages(postId: number, uploadFiles: File[]) {
     const uploadedPaths: string[] = [];
 
@@ -282,6 +522,8 @@ export default function WritePage() {
         uploadedPaths.push(storagePath);
       }
 
+      await verifyUploadedImages(uploadedPaths);
+
       return uploadedPaths;
     } catch (err) {
       // best-effort cleanup
@@ -292,13 +534,13 @@ export default function WritePage() {
     }
   }
 
-  async function insertPostImages(postId: number, paths: string[]) {
+  async function insertPostImages(postId: number, paths: string[], startOrder = 0) {
     if (paths.length === 0) return;
 
     const rows = paths.map((p, idx) => ({
       post_id: postId,
       storage_path: p,
-      sort_order: idx,
+      sort_order: startOrder + idx,
     }));
 
     const { error } = await supabase.from("post_images").insert(rows);
@@ -320,10 +562,52 @@ export default function WritePage() {
   }
 
   function getUploadedBackgroundIndex(selection: PostBackgroundSelection) {
-    if (selection.type !== "uploaded" || !selection.value) return null;
+    if (selection.type !== "uploaded" || !selection.value?.startsWith("upload:")) return null;
 
     const idx = Number(selection.value.replace("upload:", ""));
     return Number.isInteger(idx) && idx >= 0 ? idx : null;
+  }
+
+  function getExistingBackgroundPath(selection: PostBackgroundSelection) {
+    if (selection.type !== "uploaded" || !selection.value?.startsWith("existing:")) return null;
+    return selection.value.replace("existing:", "");
+  }
+
+  function getBackgroundPayload(
+    selection: PostBackgroundSelection,
+    uploadedPaths: string[]
+  ) {
+    if (selection.type === "color" || selection.type === "asset") {
+      return {
+        card_background_type: selection.type,
+        card_background_value: selection.value,
+      };
+    }
+
+    if (selection.type === "uploaded") {
+      const existingPath = getExistingBackgroundPath(selection);
+      if (existingPath) {
+        return {
+          card_background_type: "uploaded",
+          card_background_value: existingPath,
+        };
+      }
+
+      const idx = getUploadedBackgroundIndex(selection);
+      const selectedPath = idx === null ? null : uploadedPaths[idx] ?? null;
+
+      if (selectedPath) {
+        return {
+          card_background_type: "uploaded",
+          card_background_value: selectedPath,
+        };
+      }
+    }
+
+    return {
+      card_background_type: null,
+      card_background_value: null,
+    };
   }
 
   async function updateUploadedPostBackground(
@@ -370,14 +654,82 @@ export default function WritePage() {
       return;
     }
 
-    if (files.length > MAX_FILES) {
+    if (existingImages.length + files.length > MAX_FILES) {
       alert(`이미지는 최대 ${MAX_FILES}개까지 첨부할 수 있어요.`);
       return;
     }
 
     setSubmitting(true);
 
-    // 1) posts insert → postId 확보
+    let uploadedPaths: string[] = [];
+
+    if (isEditMode && editPostId) {
+      try {
+        if (files.length > 0) {
+          uploadedPaths = await uploadImages(editPostId, files);
+        }
+
+        if (uploadedPaths.length > 0) {
+          await insertPostImages(editPostId, uploadedPaths, existingImages.length);
+        }
+
+        const sortUpdateResults = await Promise.all(
+          existingImages.map((image, idx) =>
+            supabase
+              .from("post_images")
+              .update({ sort_order: idx })
+              .eq("post_id", editPostId)
+              .eq("storage_path", image.storagePath)
+          )
+        );
+        const sortUpdateError = sortUpdateResults.find((result) => result.error)?.error;
+        if (sortUpdateError) throw sortUpdateError;
+
+        const { error: updateError } = await supabase
+          .from("posts")
+          .update({
+            title: trimmedTitle,
+            content: editorHtml,
+            is_secret: isSecret,
+            ...getBackgroundPayload(selectedBackground, uploadedPaths),
+          })
+          .eq("id", editPostId)
+          .eq("user_id", userId);
+
+        if (updateError) throw updateError;
+
+        if (removedExistingPaths.length > 0) {
+          const { error: imageDeleteError } = await supabase
+            .from("post_images")
+            .delete()
+            .eq("post_id", editPostId)
+            .in("storage_path", removedExistingPaths);
+
+          if (imageDeleteError) throw imageDeleteError;
+
+          await supabase.storage.from(POST_IMAGES_BUCKET).remove(removedExistingPaths);
+        }
+
+        await router.push(`/community/board/${editPostId}`);
+      } catch (error) {
+        console.error(error);
+
+        if (uploadedPaths.length > 0) {
+          await supabase
+            .from("post_images")
+            .delete()
+            .eq("post_id", editPostId)
+            .in("storage_path", uploadedPaths);
+          await supabase.storage.from(POST_IMAGES_BUCKET).remove(uploadedPaths);
+        }
+
+        setSubmitting(false);
+        alert("게시글 수정 중 오류가 발생했습니다.");
+      }
+
+      return;
+    }
+
     const { data: inserted, error: insertError } = await supabase
       .from("posts")
       .insert({
@@ -390,10 +742,6 @@ export default function WritePage() {
       .select("id, user_id")
       .single();
 
-
-    console.log("posts insert inserted:", inserted); // { id: 4, user_id: "..." } 떠야 정상
-    console.log("userId state:", userId);
-
     if (insertError || !inserted?.id) {
       setSubmitting(false);
       alert(`posts insert 실패: ${insertError?.message ?? "unknown"}`);
@@ -401,15 +749,12 @@ export default function WritePage() {
     }
 
     const postId = inserted.id as number;
-    let uploadedPaths: string[] = [];
 
     try {
-      // 2) 이미지 업로드 (optional)
       if (files.length > 0) {
         uploadedPaths = await uploadImages(postId, files);
       }
 
-      // 3) post_images insert
       if (uploadedPaths.length > 0) {
         await insertPostImages(postId, uploadedPaths);
       }
@@ -418,7 +763,6 @@ export default function WritePage() {
 
       router.push("/community/board");
     } catch {
-      // 실패 시 best-effort 정리
       try {
         if (uploadedPaths.length > 0) {
           await supabase.storage.from(POST_IMAGES_BUCKET).remove(uploadedPaths);
@@ -440,7 +784,7 @@ export default function WritePage() {
     }
   }
 
-  if (!ready) {
+  if (!ready || (Boolean(userId) && isEditMode && !editLoaded)) {
     return (
       <>
         <Head>
@@ -510,7 +854,9 @@ export default function WritePage() {
           </aside>
 
           <div className="w-full max-w-4xl justify-self-end border border-white/12 p-8 rounded-md self-start bg-[#0a0a0a]/18 backdrop-blur-[1px]">
-            <div className="mb-6 border-b border-white/12 pb-4 text-2xl font-semibold text-white/90">글 남기기</div>
+            <div className="mb-6 border-b border-white/12 pb-4 text-2xl font-semibold text-white/90">
+              {isEditMode ? "글 수정하기" : "글 남기기"}
+            </div>
 
             {/* Title */}
             <div className="mb-4">
@@ -577,7 +923,7 @@ export default function WritePage() {
                 >
                   <span>사진</span>
                   <span className="text-white/30" aria-hidden="true">·</span>
-                  <span>{files.length}/{MAX_FILES}</span>
+                  <span>{existingImages.length + files.length}/{MAX_FILES}</span>
                 </button>
 
                 <input
@@ -631,11 +977,11 @@ export default function WritePage() {
                     : "border-white/10 bg-white/[0.015] hover:border-white/18 hover:bg-white/[0.025]"
                 }`}
               >
-                {files.length > 0 ? (
+                {attachmentPreviewItems.length > 0 ? (
                   <div className="flex min-h-16 items-center gap-2 overflow-x-auto">
-                    {filePreviews.map((preview, idx) => (
+                    {attachmentPreviewItems.map((preview) => (
                       <div
-                        key={`${preview.file.name}_${idx}`}
+                        key={preview.id}
                         className="group relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-white/10 bg-white/[0.035]"
                       >
                         <img
@@ -647,17 +993,22 @@ export default function WritePage() {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            removeFile(idx);
+                            if (preview.type === "existing") {
+                              removeExistingImage(preview.index);
+                              return;
+                            }
+
+                            removeFile(preview.index);
                           }}
                           className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/55 text-xs text-white/70 opacity-90 transition hover:bg-black/75 hover:text-white sm:opacity-0 sm:group-hover:opacity-100"
-                          aria-label={`${preview.file.name} 삭제`}
+                          aria-label={`${preview.label} 삭제`}
                         >
                           ×
                         </button>
                       </div>
                     ))}
 
-                    {files.length < MAX_FILES && (
+                    {existingImages.length + files.length < MAX_FILES && (
                       <button
                         type="button"
                         onClick={(e) => {
@@ -706,7 +1057,7 @@ export default function WritePage() {
                   disabled={submitting}
                   className="rounded-xl bg-white/10 px-5 py-2 text-sm text-white/80 ring-1 ring-white/10 transition hover:bg-white/15 disabled:opacity-50"
                 >
-                  {submitting ? "등록 중..." : "등록"}
+                  {submitting ? (isEditMode ? "수정 중..." : "등록 중...") : isEditMode ? "수정" : "등록"}
                 </button>
               </div>
             </div>

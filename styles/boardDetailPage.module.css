@@ -23,6 +23,132 @@
   margin-bottom: 10px;
 }
 
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.titleRow .title {
+  margin-bottom: 0;
+}
+
+.secretBadge,
+.allPostSecretBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.74);
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.secretBadge {
+  height: 28px;
+  margin-top: 5px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.editPostComposer {
+  margin-bottom: 18px;
+}
+
+.editPostTitleInput,
+.editPostContentInput {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.035);
+  color: #fff;
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.editPostTitleInput {
+  height: 48px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.editPostContentInput {
+  min-height: 220px;
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  resize: vertical;
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.editPostTitleInput:focus,
+.editPostContentInput:focus {
+  border-color: rgba(255, 255, 255, 0.34);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.editPostFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.editPostSecretToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.58);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.editPostSecretToggle input {
+  accent-color: #fff;
+}
+
+.editPostActions {
+  display: flex;
+  gap: 10px;
+}
+
+.editPostActions button {
+  height: 34px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.78);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.editPostActions button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.editPostActions button:disabled {
+  cursor: default;
+  background: rgba(255, 255, 255, 0.055);
+  color: rgba(255, 255, 255, 0.28);
+}
+
 .metaRow,
 .metaLeft,
 .metaRight,
@@ -126,6 +252,13 @@
   color: rgba(255, 255, 255, 0.8);
 }
 
+.countActionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .postLikeButton,
 .countMetric {
   display: inline-flex;
@@ -169,8 +302,37 @@
   color: rgba(255, 255, 255, 0.55);
 }
 
+.postActionButtons {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+
+.postActionButtons button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.48);
+  cursor: pointer;
+  font-size: 13px;
+  transition: color 0.2s ease;
+}
+
+.postActionButtons button:hover {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.postActionButtons button:disabled {
+  cursor: default;
+  color: rgba(255, 255, 255, 0.26);
+}
+
 .commentSection {
-  padding: 28px 0 12px;
+  padding: 24px 0 0;
 }
 
 .allPostsSection h2 {
@@ -181,42 +343,49 @@
 
 .commentComposer {
   display: grid;
-  grid-template-columns: 1fr 110px;
-  gap: 12px;
-  margin-bottom: 28px;
+  grid-template-columns: auto 1fr auto;
+  gap: 18px;
+  align-items: start;
+  margin-bottom: 15px;
+  padding: 14px 18px;
+  min-height: 32px;
+  background: rgba(255, 255, 255, 0.028);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 18px;
+  transition:
+    min-height 0.3s ease,
+    border-color 0.3s ease,
+    background 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.commentComposer:focus-within,
+.commentComposerActive {
+  min-height: 120px;
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(255, 255, 255, 0.36);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.18);
 }
 
 .commentComposer textarea {
   width: 100%;
-  min-height: 100px;
-  resize: vertical;
-  padding: 16px;
-  background: #111;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 14px;
+  min-height: 32px;
+  max-height: 260px;
+  resize: none;
+  padding: 6px 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
   color: #fff;
   font-size: 15px;
-  line-height: 1.7;
+  line-height: 1.85;
   outline: none;
-}
-
-.replyComposer textarea {
-  width: 100%;
-  min-height: 58px;
-  resize: vertical;
-  padding: 12px 14px;
-  background: #111;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  color: #fff;
-  font-size: 14px;
-  line-height: 1.55;
-  outline: none;
+  field-sizing: content;
 }
 
 .commentComposer textarea:focus,
 .replyComposer textarea:focus {
-  border-color: rgba(255, 255, 255, 0.24);
+  border-color: rgba(255, 255, 255, 0.32);
 }
 
 .commentComposer button,
@@ -229,36 +398,84 @@
 
 .commentComposer button,
 .replyComposerButtons button:not(.ghostButton) {
+  min-width: 68px;
+  height: 34px;
   padding: 0 14px;
-  background: #f1f1f1;
-  border-radius: 12px;
-  color: #111;
-  font-size: 14px;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 13px;
   font-weight: 700;
+}
+
+.commentComposer button {
+  align-self: end;
+  margin-bottom: 2.5px;
+}
+
+.commentComposer:focus-within button,
+.commentComposerActive button {
+  align-self: end;
+  margin-top: 0;
 }
 
 .commentComposer button:hover,
 .replyComposerButtons button:not(.ghostButton):hover {
-  transform: translateY(-1px);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.commentComposer button:disabled,
+.replyComposerButtons button:disabled {
+  cursor: default;
+  background: rgba(255, 255, 255, 0.055) !important;
+  color: rgba(255, 255, 255, 0.28) !important;
+}
+
+.commentComposer button:disabled:hover,
+.replyComposerButtons button:disabled:hover {
+  background: rgba(255, 255, 255, 0.055) !important;
+  color: rgba(255, 255, 255, 0.28) !important;
 }
 
 .emptyComments {
-  padding: 32px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 34px 0 30px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   color: rgba(255, 255, 255, 0.52);
+  text-align: center;
 }
 
 .commentBlock {
-  padding: 22px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 18px 0 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.commentBlockWithReplyThread {
+  padding-bottom: 4px;
 }
 
 .commentCard {
-  padding: 2px 0 0;
+  padding: 0 0 0 18px;
 }
 
 .replyCard {
-  padding: 0;
+  padding: 0 0 0 18px;
+}
+
+.replyCard .commentMeta {
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.replyCard .commentContent {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.replyCard .commentActions button {
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.replyCard .commentActions button:hover {
+  color: rgba(255, 255, 255, 0.74);
 }
 
 .commentMeta {
@@ -266,39 +483,168 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 10px;
-  color: rgba(255, 255, 255, 0.56);
-  font-size: 13px;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 12px;
+}
+
+.commentMetaRow {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.commentMenuWrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.commentMenuButton {
+  display: inline-flex;
+  height: 26px;
+  width: 26px;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.38);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.commentMenuButton:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.commentDropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  min-width: 108px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(18, 18, 18, 0.96);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.36);
+}
+
+.commentDropdown button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+  font-size: 12px;
+  text-align: left;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.commentDropdown button:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.commentDropdown button:disabled {
+  cursor: default;
+  opacity: 0.45;
 }
 
 .commentContent {
   font-size: 15px;
-  line-height: 1.8;
-  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.95;
+  color: rgba(255, 255, 255, 0.86);
   word-break: keep-all;
+}
+
+.editCommentComposer {
+  margin-top: 10px;
+}
+
+.editCommentComposer textarea {
+  width: 100%;
+  min-height: 78px;
+  resize: vertical;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.75;
+  outline: none;
+}
+
+.editCommentComposer textarea:focus {
+  border-color: rgba(255, 255, 255, 0.32);
+}
+
+.editCommentActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.editCommentActions button {
+  height: 32px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.78);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.editCommentActions button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.editCommentActions button:disabled {
+  cursor: default;
+  background: rgba(255, 255, 255, 0.055);
+  color: rgba(255, 255, 255, 0.28);
 }
 
 .commentActions {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 14px;
+  margin-top: 14px;
 }
 
 .commentActions button {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 6px 8px;
+  padding: 0;
   background: transparent;
-  border-radius: 8px;
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 13px;
+  border-radius: 0;
+  color: rgba(255, 255, 255, 0.46);
+  font-size: 12px;
 }
 
 .commentActions button:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.88);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .activeAction {
@@ -328,10 +674,9 @@
 }
 
 .replyThread {
-  margin-top: 16px;
-  margin-left: 24px;
-  padding-left: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  margin-top: 18px;
+  margin-left: 0;
+  padding-left: 18px;
 }
 
 .replyList {
@@ -342,54 +687,106 @@
 
 .replyItem {
   display: grid;
-  grid-template-columns: 24px 1fr;
-  gap: 12px;
-  align-items: center;
-  padding: 15px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  grid-template-columns: 18px 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 18px 0;
 }
 
 .replyArrow {
-  color: rgba(255, 255, 255, 0.42);
+  margin-top: 30px;
+  color: rgba(255, 255, 255, 0.2);
 }
 
 .replyComposer {
-  padding: 16px 0 0 36px;
-}
-
-.replyComposer textarea {
-  min-height: 54px;
-  max-height: 220px;
-  overflow-y: auto;
-  resize: none;
-  field-sizing: content;
-  padding: 12px 0;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  margin-top: 10px;
+  margin-bottom: 20px;
+  margin-left: 0;
+  padding: 0;
   background: transparent;
   border: none;
-  border-top: 1px solid rgba(255, 255, 255, 0.18);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 0;
 }
 
+.replyComposer:focus-within,
+.replyComposerActive {
+  background: transparent;
+}
+
+.replyComposerAvatar {
+  margin-top: 6px;
+}
+
+.replyComposerArrow {
+  margin-top: 13px;
+}
+
+.replyComposerBody {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding-left: 16px;
+}
+
+.replyComposerField {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 6px 0 6px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+  transition: border-color 0.2s ease;
+}
+
+.replyComposer:focus-within .replyComposerField,
+.replyComposerActive .replyComposerField {
+  border-bottom-color: rgba(255, 255, 255, 0.6);
+}
+
+.replyComposer textarea {
+  width: 100%;
+  min-height: 32px;
+  max-height: 120px;
+  overflow-y: auto;
+  resize: none;
+  field-sizing: content;
+  padding: 4px 0 3px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.65;
+  outline: none;
+}
+
 .replyComposer textarea:focus {
-  border-top-color: rgba(255, 255, 255, 0.36);
-  border-bottom-color: rgba(255, 255, 255, 0.36);
+  border-color: transparent;
 }
 
 .replyComposerButtons {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 10px;
+  gap: 10px;
+  margin: 0 0 3px;
+  white-space: nowrap;
 }
 
 .replyComposerButtons button {
-  padding: 6px 4px;
+  min-width: 0 !important;
+  height: auto !important;
+  padding: 3px 0 !important;
   background: transparent !important;
   border: none !important;
   border-radius: 0;
   color: rgba(255, 255, 255, 0.56);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -397,18 +794,23 @@
   color: rgba(255, 255, 255, 0.92);
 }
 
+.replyComposer .replyComposerButtons button:disabled,
+.replyComposer .replyComposerButtons button:disabled:hover {
+  background: transparent !important;
+  color: rgba(255, 255, 255, 0.24) !important;
+}
+
 .ghostButton {
   padding: 10px 14px;
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  border-radius: 12px;
+  border: none !important;
+  border-radius: 0;
   color: rgba(255, 255, 255, 0.65);
 }
 
 .allPostsSection {
   margin-top: 48px;
   padding-top: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .allPostsTitleRow {
@@ -437,9 +839,10 @@
 
 .allPostRow {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 16px 0;
+  padding: 14px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   color: rgba(255, 255, 255, 0.82);
   text-decoration: none;
@@ -455,18 +858,56 @@
   color: rgba(255, 255, 255, 0.38);
 }
 
-.allPostTitle {
+.allPostInfo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
   flex: 1;
+  gap: 20px;
+}
+
+.allPostTitle {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.allPostDate {
+.allPostTitleWrap {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 8px;
+}
+
+.allPostSecretBadge {
+  height: 23px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+.allPostMeta {
+  display: grid;
+  grid-template-columns: minmax(88px, 120px) 156px;
+  min-width: 0;
   flex: 0 0 auto;
+  align-items: center;
+  justify-content: end;
+  gap: 16px;
   color: rgba(255, 255, 255, 0.48);
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.allPostAuthor,
+.allPostDate {
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (max-width: 768px) {
@@ -475,7 +916,14 @@
   }
 
   .commentComposer {
-    grid-template-columns: 1fr;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 12px;
+    padding: 14px 16px;
+  }
+
+  .commentComposer button {
+    grid-column: auto;
+    justify-self: end;
   }
 
   .filmImageTrack {
@@ -494,12 +942,30 @@
   }
 
   .replyThread {
-    margin-left: 8px;
-    padding-left: 8px;
+    margin-left: 0;
+    padding-left: 0;
   }
 
   .replyComposer {
-    padding-left: 0;
+    grid-template-columns: 18px minmax(0, 1fr);
+    align-items: start;
+    margin-left: 0;
+    padding: 0;
+  }
+
+  .replyComposerBody {
+    padding-left: 8px;
+  }
+
+  .replyComposerField {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 6px 0 9px;
+  }
+
+  .replyComposerButtons {
+    grid-column: auto;
+    justify-content: flex-end;
+    gap: 8px;
   }
 
   .allPostRow {
@@ -507,4 +973,142 @@
     align-items: flex-start;
     gap: 8px;
   }
+
+  .allPostInfo {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+
+  .allPostMeta {
+    display: inline-flex;
+    flex: 0 1 auto;
+    gap: 7px;
+  }
+
+  .allPostMeta .allPostDate::before {
+    content: "·";
+    margin-right: 7px;
+  }
+}
+
+.reportPopover {
+  position: fixed;
+  z-index: 90;
+  width: min(320px, calc(100vw - 24px));
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 12px;
+  background: rgba(14, 14, 14, 0.98);
+  color: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.48);
+}
+
+.reportPopoverHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px 9px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.reportPopoverHeader h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.reportPopoverHeader button {
+  display: inline-flex;
+  height: 24px;
+  width: 24px;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.48);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  transition: 0.2s ease;
+}
+
+.reportPopoverHeader button:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.reportReasonList {
+  display: flex;
+  flex-direction: column;
+  padding: 7px;
+}
+
+.reportReasonItem {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 8px;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+  font-size: 12px;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.reportReasonItem:hover {
+  background: rgba(255, 255, 255, 0.055);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.reportReasonItem input {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  accent-color: #fff;
+}
+
+.reportPopoverActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  padding: 10px 14px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.reportPopoverActions button {
+  height: 30px;
+  padding: 0 11px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  transition: 0.2s ease;
+}
+
+.reportPopoverActions button:last-child {
+  background: #ffffff;
+  color: #0b0b0b;
+}
+
+.reportPopoverActions button:hover {
+  background: rgba(255, 255, 255, 0.17);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.reportPopoverActions button:last-child:hover {
+  background: rgba(255, 255, 255, 0.84);
+  color: #0b0b0b;
+}
+
+.reportPopoverActions button:disabled,
+.reportPopoverHeader button:disabled {
+  cursor: default;
+  opacity: 0.45;
 }
