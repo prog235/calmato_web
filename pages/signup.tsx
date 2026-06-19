@@ -2,8 +2,13 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useMemo, useState } from "react";
+import { Eye, EyeOff, LockKeyhole, Mail, UserRound, X } from "lucide-react";
+
+import { getImage } from "@/lib/getUrl";
 import { validateNickname } from "@/lib/validateNickname";
 import { supabase } from "@/lib/supabaseClient";
+
+const LOGIN_VIDEO_SRC = getImage("assets", "login_vid.mp4");
 
 type UiStatus = "idle" | "loading" | "success";
 
@@ -21,6 +26,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const [passwordMatchError, setPasswordMatchError] = useState<string>("");
 
@@ -120,141 +126,183 @@ export default function SignupPage() {
         <title>Sign Up | Calmato</title>
       </Head>
 
-      <main className="relative min-h-screen overflow-hidden">
-        {/* warm glow */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -left-32 -bottom-36 h-[560px] w-[560px] rounded-full blur-2xl"
-          style={{
-            background:
-              "radial-gradient(circle at 40% 40%, rgba(255,200,110,0.35), rgba(255,200,110,0) 62%)",
-          }}
-        />
+      <main className="min-h-screen overflow-hidden bg-[#0a0a0a]">
+        <section className="grid min-h-screen px-5 py-6 md:grid-cols-2 md:px-6 lg:gap-14">
+          <div className="hidden min-h-[calc(100vh-3rem)] md:block">
+            <div className="relative h-full overflow-hidden rounded-[20px] border border-white/8 bg-white/[0.025]">
+              <video
+                src={LOGIN_VIDEO_SRC}
+                autoPlay
+                muted
+                loop
+                playsInline
+                className="h-full w-full object-cover"
+              />
+              <div className="pointer-events-none absolute inset-0 bg-black/18" />
+            </div>
+          </div>
 
-        <section className="mx-auto grid min-h-screen max-w-[1100px] place-items-center px-4 py-16">
-          <div className="w-full max-w-[520px] rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-md">
-            <h1 className="text-center text-[22px] font-semibold tracking-tight">회원가입</h1>
-            <p className="subtext mt-2 text-center text-sm">
-              함께하는 순간이 서로의 위로가 되기를
-            </p>
+          <div className="relative flex min-h-[calc(100vh-3rem)] items-center justify-center px-0 py-12 md:px-8 lg:px-12">
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="absolute right-0 top-0 inline-flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-white/70 transition hover:bg-white/15 hover:text-white md:right-1 md:top-1"
+              aria-label="닫기"
+            >
+              <X size={18} strokeWidth={1.8} />
+            </button>
 
-            <form onSubmit={onSubmit} className="mt-6 space-y-4">
-              <div className="space-y-2">
-                <label className="subtext text-xs">
-                  닉네임<span className="ml-0.5 text-red-300">*</span>
-                </label>
-                <input
-                  value={nickname}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setNickname(value);
+            <div className="w-full max-w-[430px]">
+              <h1 className="font-serif text-[36px] font-medium leading-none tracking-normal text-white">
+                Calmato
+              </h1>
 
-                    const result = validateNickname(value);
-                    if (!result.valid) {
-                      setNicknameError(result.message);
-                    } else {
-                      setNicknameError("");
-                    }
-                  }}
-                  placeholder="닉네임"
-                  type="text"
-                  autoComplete="nickname"
-                  className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-[color:var(--foreground)] outline-none transition focus:border-white/20 focus:ring-4 focus:ring-white/5"
-                />
-                <p className={`text-xs ${nicknameError ? "text-red-300" : "subtext"}`}>
-                  {nicknameError
-                    ? nicknameError
-                    : "닉네임은 커뮤니티에서 표시되는 이름입니다. (나중에 변경 가능)"}
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <label className="subtext text-xs">
-                  이메일<span className="ml-0.5 text-red-300">*</span>
-                </label>
-                <input
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="이메일"
-                  type="email"
-                  autoComplete="email"
-                  className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-[color:var(--foreground)] outline-none transition focus:border-white/20 focus:ring-4 focus:ring-white/5"
-                />
-                <p className="subtext text-xs">회원가입 후 이메일 인증 링크가 발송됩니다.</p>
-              </div>
-
-              <div className="space-y-2">
-                <label className="subtext text-xs">
-                  비밀번호<span className="ml-0.5 text-red-300">*</span>
-                </label>
-                <input
-                  value={password}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setPassword(value);
-
-                    if (passwordConfirm && value !== passwordConfirm) {
-                      setPasswordMatchError("비밀번호가 일치하지 않습니다.");
-                    } else {
-                      setPasswordMatchError("");
-                    }
-                  }}
-                  placeholder="비밀번호 (8자 이상)"
-                  type="password"
-                  autoComplete="new-password"
-                  className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-[color:var(--foreground)] outline-none transition focus:border-white/20 focus:ring-4 focus:ring-white/5"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="subtext text-xs">
-                  비밀번호 확인<span className="ml-0.5 text-red-300">*</span>
-                </label>
-                <input
-                  value={passwordConfirm}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setPasswordConfirm(value);
-
-                    if (password && value !== password) {
-                      setPasswordMatchError("비밀번호가 일치하지 않습니다.");
-                    } else {
-                      setPasswordMatchError("");
-                    }
-                  }}
-                  placeholder="비밀번호 확인"
-                  type="password"
-                  autoComplete="new-password"
-                  className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-sm text-[color:var(--foreground)] outline-none transition focus:border-white/20 focus:ring-4 focus:ring-white/5"
-                />
-
-                {/* messages under password-confirm area (same pattern as login) */}
-                {passwordMatchError ? (
-                  <p className="mt-1 text-xs text-red-300">{passwordMatchError}</p>
-                ) : errorText ? (
-                  <p className="mt-1 text-xs text-red-300">{errorText}</p>
-                ) : successText ? (
-                  <p className="mt-1 text-xs text-emerald-300">{successText}</p>
-                ) : (
-                  <div className="h-4" />
-                )}
-              </div>
-
-              <button
-                type="submit"
-                disabled={!canSubmit}
-                className="h-11 w-full rounded-full border border-white/10 bg-white/10 text-sm text-white/80 transition hover:bg-white/15 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {status === "loading" ? "가입 처리 중..." : "회원가입"}
-              </button>
-
-              <p className="subtext pt-2 text-center text-xs">
-                이미 계정이 있으신가요?{" "}
-                <Link href="/login" className="text-white/85 hover:text-white">
-                  로그인
-                </Link>
+              <p className="mt-6 text-base font-medium text-white/88">
+                함께하는 순간이 서로의 위로가 되기를
               </p>
-            </form>
+
+              <form onSubmit={onSubmit} className="mt-10 space-y-5">
+                <div className="border-b border-white/14 pb-3">
+                  <label className="flex items-center gap-2 text-sm text-white/42">
+                    <UserRound size={16} strokeWidth={1.7} className="text-white/88" />
+                    <span>
+                      닉네임<span className="ml-0.5 text-[#ff8b32]">*</span>
+                    </span>
+                  </label>
+                  <input
+                    value={nickname}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setNickname(value);
+
+                      const result = validateNickname(value);
+                      if (!result.valid) {
+                        setNicknameError(result.message);
+                      } else {
+                        setNicknameError("");
+                      }
+                    }}
+                    type="text"
+                    autoComplete="nickname"
+                    className="mt-2 h-6 w-full bg-transparent text-sm text-white/90 outline-none placeholder:text-white/25"
+                    aria-label="닉네임"
+                  />
+                </div>
+
+                <div className="border-b border-white/14 pb-3">
+                  <label className="flex items-center gap-2 text-sm text-white/42">
+                    <Mail size={16} strokeWidth={1.7} className="text-white/88" />
+                    <span>
+                      이메일<span className="ml-0.5 text-[#ff8b32]">*</span>
+                    </span>
+                  </label>
+                  <input
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    type="email"
+                    autoComplete="email"
+                    className="mt-2 h-6 w-full bg-transparent text-sm text-white/90 outline-none placeholder:text-white/25"
+                    aria-label="이메일"
+                  />
+                </div>
+
+                <div className="border-b border-white/14 pb-3">
+                  <div className="flex items-center gap-3">
+                    <label className="flex flex-1 items-center gap-2 text-sm text-white/42">
+                      <LockKeyhole size={16} strokeWidth={1.7} className="text-white/88" />
+                      <span>
+                        비밀번호<span className="ml-0.5 text-[#ff8b32]">*</span>
+                      </span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className="inline-flex h-8 w-8 items-center justify-center text-white/70 transition hover:text-white"
+                      aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
+                    >
+                      {showPassword ? (
+                        <EyeOff size={17} strokeWidth={1.8} />
+                      ) : (
+                        <Eye size={17} strokeWidth={1.8} />
+                      )}
+                    </button>
+                  </div>
+                  <input
+                    value={password}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setPassword(value);
+
+                      if (passwordConfirm && value !== passwordConfirm) {
+                        setPasswordMatchError("비밀번호가 일치하지 않습니다.");
+                      } else {
+                        setPasswordMatchError("");
+                      }
+                    }}
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    className="mt-2 h-6 w-full bg-transparent text-sm text-white/90 outline-none placeholder:text-white/25"
+                    aria-label="비밀번호"
+                  />
+                </div>
+
+                <div className="border-b border-white/14 pb-3">
+                  <label className="flex items-center gap-2 text-sm text-white/42">
+                    <LockKeyhole size={16} strokeWidth={1.7} className="text-white/88" />
+                    <span>
+                      비밀번호 확인<span className="ml-0.5 text-[#ff8b32]">*</span>
+                    </span>
+                  </label>
+                  <input
+                    value={passwordConfirm}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setPasswordConfirm(value);
+
+                      if (password && value !== password) {
+                        setPasswordMatchError("비밀번호가 일치하지 않습니다.");
+                      } else {
+                        setPasswordMatchError("");
+                      }
+                    }}
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    className="mt-2 h-6 w-full bg-transparent text-sm text-white/90 outline-none placeholder:text-white/25"
+                    aria-label="비밀번호 확인"
+                  />
+                </div>
+
+                {nicknameError ? (
+                  <p className="-mt-3 text-xs text-red-300">{nicknameError}</p>
+                ) : passwordMatchError ? (
+                  <p className="-mt-3 text-xs text-red-300">{passwordMatchError}</p>
+                ) : errorText ? (
+                  <p className="-mt-3 text-xs text-red-300">{errorText}</p>
+                ) : successText ? (
+                  <p className="-mt-3 text-xs text-emerald-300">{successText}</p>
+                ) : null}
+
+                <div className="space-y-4 pt-1">
+                  <p className="text-xs text-white/42">
+                    이미 계정이 있으신가요?{" "}
+                    <Link
+                      href="/login"
+                      className="font-medium text-white/82 transition hover:text-white"
+                    >
+                      로그인
+                    </Link>
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={!canSubmit}
+                  className="mt-1 h-11 w-full rounded-full bg-white/20 text-sm font-medium text-white/45 transition hover:bg-white/24 hover:text-white/80 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {status === "loading" ? "가입 처리 중..." : "회원가입"}
+                </button>
+              </form>
+            </div>
           </div>
         </section>
       </main>

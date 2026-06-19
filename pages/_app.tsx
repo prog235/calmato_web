@@ -10,7 +10,11 @@ import Iconset from "@/components/Iconset";
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
-  const hideChrome = router.pathname === "/login";
+  const hideChrome =
+    router.pathname === "/login" ||
+    router.pathname === "/signup" ||
+    router.pathname === "/forgot-password" ||
+    router.pathname === "/reset-password";
 
   return (
     <ThemeProvider attribute="class"> 

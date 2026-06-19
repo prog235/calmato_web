@@ -54,14 +54,19 @@ export default function Navbar() {
   const [dup, setDup] = useState<DupState>({ state: "idle" });
   const [isSavingNickname, setIsSavingNickname] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  const links = [
-    { href: "/", label: "Home" },
-    { href: "/about", label: "About" },
-    { href: "/archive", label: "Archive" },
-    { href: "/community", label: "Community" },
-    { href: "/contact", label: "Contact" },
-  ];
+  const links = useMemo(
+    () => [
+      ...(isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
+      { href: "/", label: "Home" },
+      { href: "/about", label: "About" },
+      { href: "/archive", label: "Archive" },
+      { href: "/community", label: "Community" },
+      { href: "/contact", label: "Contact" },
+    ],
+    [isAdmin]
+  );
 
   const validation = useMemo(
     () => validateNickname(nextNickname),
@@ -110,6 +115,26 @@ export default function Navbar() {
     setNextNickname(nickname);
     setDup({ state: "idle" });
     setIsEditingNickname(false);
+  }
+
+  async function loadAdminStatus() {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      setIsAdmin(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    setIsAdmin(!error && data?.role === "admin");
   }
 
   async function handleProfileButtonClick() {
@@ -218,6 +243,7 @@ export default function Navbar() {
 
   async function logout() {
     await supabase.auth.signOut();
+    setIsAdmin(false);
     setIsProfileOpen(false);
     router.push("/login");
   }
@@ -255,6 +281,18 @@ export default function Navbar() {
 
     return <p className="mt-2 text-xs text-emerald-300">형식은 사용할 수 있습니다.</p>;
   }
+
+  useEffect(() => {
+    void loadAdminStatus();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      void loadAdminStatus();
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (!isProfileOpen) return;
@@ -333,7 +371,9 @@ export default function Navbar() {
 
       <nav className="flex items-center gap-10 text-[13px]">
         {links.map((link) => {
-          const isActive = router.pathname === link.href;
+          const isActive =
+            router.pathname === link.href ||
+            (link.href === "/admin" && router.pathname.startsWith("/admin/"));
 
           return (
             <motion.div

@@ -255,16 +255,16 @@ export default function AdminPostsPage({ admin }: AdminPostsPageProps) {
 
             <div className="flex flex-wrap gap-2">
               <Link
-                href="/admin/tracks"
+                href="/admin"
                 className="inline-flex h-10 items-center justify-center rounded-md border border-white/12 px-4 text-sm font-medium text-white/70 transition hover:border-white/24 hover:bg-white/[0.04] hover:text-white"
               >
-                Track Admin
+                Admin Home
               </Link>
               <Link
-                href="/admin/playlists"
+                href="/admin/reports"
                 className="inline-flex h-10 items-center justify-center rounded-md border border-white/12 px-4 text-sm font-medium text-white/70 transition hover:border-white/24 hover:bg-white/[0.04] hover:text-white"
               >
-                Playlist Admin
+                Report Admin
               </Link>
             </div>
           </header>

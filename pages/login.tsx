@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff, LockKeyhole, Mail, X } from "lucide-react";
 
+import { ensureProfileNicknameFallback } from "@/lib/ensureProfile";
 import { getImage } from "@/lib/getUrl";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -65,10 +66,19 @@ export default function LoginPage() {
 
     async function redirectIfAlreadyLoggedIn() {
       const {
-        data: { session },
-      } = await supabase.auth.getSession();
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
 
-      if (!cancelled && session) {
+      if (cancelled) return;
+
+      if (error || !user) {
+        await supabase.auth.signOut();
+        return;
+      }
+
+      if (user) {
+        await ensureProfileNicknameFallback(user);
         await router.replace(nextPath);
       }
     }
@@ -79,6 +89,25 @@ export default function LoginPage() {
       cancelled = true;
     };
   }, [nextPath, router]);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    const errorDescription = Array.isArray(router.query.error_description)
+      ? router.query.error_description[0]
+      : router.query.error_description;
+    const error = Array.isArray(router.query.error)
+      ? router.query.error[0]
+      : router.query.error;
+
+    if (errorDescription || error) {
+      setErrorText(
+        decodeURIComponent(
+          errorDescription ?? error ?? "OAuth 로그인에 실패했습니다."
+        )
+      );
+    }
+  }, [router.isReady, router.query.error, router.query.error_description]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,6 +152,7 @@ export default function LoginPage() {
         return;
       }
 
+      await ensureProfileNicknameFallback(sessionRes.session.user);
       await router.replace(nextPath);
     } catch (err) {
       console.error("login unexpected error:", err);
@@ -133,7 +163,7 @@ export default function LoginPage() {
   };
 
 
-  const signInWithOAuth = async (provider: "google" | "apple") => {
+  const signInWithOAuth = async (provider: "google" | "kakao") => {
     setErrorText("");
     setLoading(true);
 
@@ -193,11 +223,11 @@ export default function LoginPage() {
                 Calmato
               </h1>
 
-              <p className="mt-14 text-base font-medium text-white/88">
+              <p className="mt-6 text-base font-medium text-white/88">
                 함께하는 순간이 서로의 위로가 되기를
               </p>
 
-              <form onSubmit={onSubmit} className="mt-7 space-y-5">
+              <form onSubmit={onSubmit} className="mt-10 space-y-5">
                 <div className="border-b border-white/14 pb-3">
                   <label className="flex items-center gap-2 text-sm text-white/42">
                     <Mail size={16} strokeWidth={1.7} className="text-white/88" />
@@ -286,14 +316,14 @@ export default function LoginPage() {
               <div className="space-y-3">
                 <button
                   type="button"
-                  onClick={() => signInWithOAuth("apple")}
+                  onClick={() => signInWithOAuth("kakao")}
                   disabled={loading}
-                  className="flex h-[38px] w-full items-center justify-center gap-2 rounded-full bg-white px-4 text-xs font-medium text-black transition hover:bg-white/92 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex h-[38px] w-full items-center justify-center gap-2 rounded-full bg-[#FEE500] px-4 text-xs font-medium text-black transition hover:bg-[#FEE500]/90 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <span aria-hidden className="text-xl leading-none">
-                    
+                  <span aria-hidden className="text-sm font-bold leading-none">
+                    K
                   </span>
-                  <span>Apple계정으로 계속하기</span>
+                  <span>카카오계정으로 계속하기</span>
                 </button>
 
                 <button

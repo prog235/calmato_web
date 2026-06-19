@@ -90,7 +90,7 @@ export default function TrackRow({ track }: Props) {
   );
 
   return (
-    <div className="relative rounded-lg bg-[var(--foreground)]/7 p-3 overflow-hidden">
+    <div className="relative rounded-lg bg-[var(--foreground)]/7 p-3 overflow-visible">
       {/* 헤더 */}
       <div className="flex items-center justify-between relative z-10">
         <div className="flex items-center min-w-0">
@@ -183,7 +183,7 @@ export default function TrackRow({ track }: Props) {
                   </div>
                 )}
                 {track.youtube_url && (
-                  <div className="md:col-span-2">
+                  <div className="flex justify-end md:col-span-2">
                     <a
                       href={track.youtube_url}
                       target="_blank"

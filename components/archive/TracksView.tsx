@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import { Search, X } from "lucide-react";
 import TrackRow from "@/components/TrackRow";
 import { supabase } from "@/lib/supabaseClient";
 import { getThumbnailUrl } from "@/lib/getUrl";
@@ -39,6 +40,7 @@ export default function TracksView({ categories, playlists }: Props) {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [tracksLoading, setTracksLoading] = useState(false);
   const [tracksError, setTracksError] = useState<string | null>(null);
+  const [trackSearch, setTrackSearch] = useState("");
 
   const tracksCacheRef = useRef<Map<string, Track[]>>(new Map());
 
@@ -71,6 +73,17 @@ export default function TracksView({ categories, playlists }: Props) {
       ) ?? null
     );
   }, [selection, playlistsInSelectedCategory]);
+
+  const filteredTracks = useMemo(() => {
+    const query = trackSearch.trim().toLowerCase();
+    if (!query) return tracks;
+
+    return tracks.filter((track) => {
+      return [track.title, track.subtitle]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(query));
+    });
+  }, [trackSearch, tracks]);
 
   const selectCategory = (categoryId: number) => {
     setSelectedCategoryId(categoryId);
@@ -275,14 +288,43 @@ export default function TracksView({ categories, playlists }: Props) {
         <div className="rounded-sm border border-[var(--foreground)]/5">
           <div className="p-7 space-y-5">
             {/* Header */}
-            <div>
-              <h2 className="text-[22px] font-semibold text-white">
-                {pageTitle}
-              </h2>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-[22px] font-semibold text-white">
+                  {pageTitle}
+                </h2>
 
-              <p className="mt-1 text-[13px] text-white/45">
-                {trackCount} Tracks
-              </p>
+                <p className="mt-1 text-[13px] text-white/45">
+                  {trackCount} Tracks
+                </p>
+              </div>
+
+              <div className="relative w-full sm:w-64">
+                <Search
+                  size={16}
+                  strokeWidth={1.8}
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/35"
+                />
+                <input
+                  type="search"
+                  value={trackSearch}
+                  onChange={(e) => setTrackSearch(e.target.value)}
+                  placeholder="곡 검색"
+                  aria-label="곡 검색"
+                  className="h-9 w-full rounded-md border border-white/10 bg-white/[0.055] pl-9 pr-9 text-[13px] text-white outline-none transition placeholder:text-white/30 hover:border-white/20 focus:border-white/35 focus:bg-white/[0.075]"
+                />
+                {trackSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setTrackSearch("")}
+                    aria-label="검색어 지우기"
+                    className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-white/45 transition hover:bg-white/10 hover:text-white"
+                  >
+                    <X size={14} strokeWidth={1.8} />
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="h-px w-full bg-[var(--foreground)]/10" />
@@ -337,7 +379,7 @@ export default function TracksView({ categories, playlists }: Props) {
             )}
 
             {/* Tracks */}
-            <div className="space-y-4">
+            <div className="min-h-[420px] space-y-4 md:min-h-[560px]">
               {tracksLoading && (
                 <div className="subtext">Loading tracks...</div>
               )}
@@ -350,7 +392,14 @@ export default function TracksView({ categories, playlists }: Props) {
 
               {!tracksLoading &&
                 !tracksError &&
-                tracks.map((t) => <TrackRow key={t.id} track={t} />)}
+                tracks.length > 0 &&
+                filteredTracks.length === 0 && (
+                  <div className="subtext">No matching tracks.</div>
+                )}
+
+              {!tracksLoading &&
+                !tracksError &&
+                filteredTracks.map((t) => <TrackRow key={t.id} track={t} />)}
             </div>
           </div>
         </div>

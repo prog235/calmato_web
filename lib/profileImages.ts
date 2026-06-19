@@ -7,6 +7,10 @@ export function getProfileImageUrl(
   db: SupabaseClient,
   path: string | null | undefined
 ) {
+  if (path?.startsWith("http://") || path?.startsWith("https://")) {
+    return path;
+  }
+
   const { data } = db.storage
     .from(PROFILE_IMAGES_BUCKET)
     .getPublicUrl(path ?? DEFAULT_PROFILE_IMAGE_PATH);

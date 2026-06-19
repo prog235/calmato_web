@@ -6,6 +6,7 @@ import {
   CalendarClock,
   Disc3,
   FolderOpen,
+  Image as ImageIcon,
   ListMusic,
   LockKeyhole,
   MessageSquareText,
@@ -51,6 +52,12 @@ const ADMIN_LINKS = [
     title: "Request Admin",
     description: "곡 신청 순위와 상위 신청곡 업로드 날짜를 관리합니다.",
     icon: CalendarClock,
+  },
+  {
+    href: "/admin/wallpapers",
+    title: "Wallpaper Admin",
+    description: "월페이퍼 이미지를 업로드하고 메타데이터를 등록합니다.",
+    icon: ImageIcon,
   },
   {
     href: "/admin/files",
