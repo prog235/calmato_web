@@ -38,7 +38,8 @@ export default function Contact() {
   };
 
   return (
-    <main className="max-w-lg mx-auto p-4">
+    <main className="page-gutter py-4">
+      <div className="max-w-lg">
       <h1 className="text-2xl font-bold mb-4">Contact</h1>
       <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
         <input
@@ -74,6 +75,7 @@ export default function Contact() {
           {loading ? "전송 중..." : "전송하기"}
         </button>
       </form>
+      </div>
     </main>
   );
 }

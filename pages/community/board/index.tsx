@@ -144,7 +144,7 @@ export default function BoardPage(props: BoardPageProps) {
       </Head>
 
       <div className="min-h-screen">
-        <div className="mb-16 px-8 sm:px-12 md:px-16">
+        <div className="mb-16 page-gutter">
           <section className={heroStyles.heroSection}>
             <div className={heroStyles.heroImageWrap}>
               <Image
@@ -168,12 +168,12 @@ export default function BoardPage(props: BoardPageProps) {
             <CommunityTabs current="board" />
           </section>
 
-          <div className="mt-5 flex flex-col items-stretch gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
-            <div>
+          <div className="mt-5 flex flex-col items-stretch gap-4 md:flex-row md:items-end md:justify-between md:gap-6">
+            <div className="shrink-0">
               <Link
                 href="/community/board/write"
                 onClick={handleWriteClick}
-                className="inline-flex h-[38px] items-center gap-2 rounded-lg bg-white/5 px-4 text-sm text-white/80 ring-1 ring-white/10 transition hover:bg-white/10"
+                className="inline-flex h-[38px] w-[148px] shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-white/5 px-4 text-sm text-white/80 ring-1 ring-white/10 transition hover:bg-white/10"
               >
                 <PencilLine size={15} aria-hidden="true" />
                 게시물 작성하기
@@ -182,14 +182,14 @@ export default function BoardPage(props: BoardPageProps) {
 
             <form
               onSubmit={onSubmitSearch}
-              className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center"
+              className="flex min-w-0 w-full items-center gap-3 md:flex-1 lg:w-auto lg:flex-none"
             >
-              <label className="relative block w-full sm:w-auto">
+              <label className="relative block w-[108px] shrink-0 sm:w-[122px]">
                 <span className="sr-only">자유게시판 정렬 기준</span>
                 <select
                   value={props.sort}
                   onChange={(e) => changeSort(e.target.value as BoardSort)}
-                  className="h-[38px] w-full appearance-none rounded-xl bg-white/5 px-3 pr-8 text-sm text-white/80 ring-1 ring-white/10 transition hover:bg-white/[0.065] focus:outline-none focus:ring-2 focus:ring-white/20 sm:w-[122px]"
+                  className="h-[38px] w-full appearance-none rounded-xl bg-white/5 px-3 pr-8 text-sm text-white/80 ring-1 ring-white/10 transition hover:bg-white/[0.065] focus:outline-none focus:ring-2 focus:ring-white/20"
                 >
                   <option value="latest">최신 순</option>
                   <option value="likes">좋아요 순</option>
@@ -199,7 +199,7 @@ export default function BoardPage(props: BoardPageProps) {
                 <span className="pointer-events-none absolute right-3 top-1/2 h-2 w-2 -translate-y-[65%] rotate-45 border-b border-r border-white/60" />
               </label>
 
-              <div className="relative w-full sm:w-auto">
+              <div className="relative min-w-0 flex-1 lg:w-[340px] lg:flex-none">
                 <Search
                   size={15}
                   className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/40"
@@ -209,13 +209,13 @@ export default function BoardPage(props: BoardPageProps) {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="듣고 싶은 이야기를 찾아보세요."
-                  className="h-[38px] w-full rounded-xl bg-white/5 pl-10 pr-3 text-sm text-white/85 ring-1 ring-white/10 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-white/20 sm:w-[340px]"
+                  className="h-[38px] w-full rounded-xl bg-white/5 pl-10 pr-3 text-sm text-white/85 ring-1 ring-white/10 placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-white/20"
                 />
               </div>
             </form>
           </div>
 
-          <div className="mt-5 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-5 grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
             {props.cards.map((c) => (
               <PostCard
                 key={c.id}
@@ -238,7 +238,7 @@ export default function BoardPage(props: BoardPageProps) {
             ))}
           </div>
 
-          <div className="mt-10 flex items-center justify-center gap-2 pb-16">
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-2 pb-16">
             <button
               onClick={() => goToPage(Math.max(1, props.page - 1))}
               disabled={props.page <= 1}
@@ -247,7 +247,7 @@ export default function BoardPage(props: BoardPageProps) {
               Prev
             </button>
 
-            <div className="flex items-center gap-1">
+            <div className="flex flex-wrap items-center justify-center gap-1">
               {pages.map((p) => {
                 const active = p === props.page;
                 return (

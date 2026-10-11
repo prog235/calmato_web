@@ -955,7 +955,7 @@ export default function RequestPage({
         <title>Track Request | Calmato</title>
       </Head>
 
-      <main className="mb-16 px-8 sm:px-12 md:px-16">
+      <main className="mb-16 page-gutter">
         <section className={heroStyles.heroSection}>
           <div className={heroStyles.heroImageWrap}>
             <Image

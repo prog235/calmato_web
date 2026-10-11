@@ -65,7 +65,7 @@ export default function Project() {
   if (errorMessage) return <div>{errorMessage}</div>;
 
   return (
-    <main className="min-h-screen px-8 sm:px-12 md:px-16 mb-16">
+    <main className="min-h-screen page-gutter mb-16">
       <section className={heroStyles.heroSection}>
         <div className={heroStyles.heroImageWrap}>
           <Image

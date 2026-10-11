@@ -10,7 +10,7 @@ export default function ArchiveTabs({ value, onChange }: Props) {
 
   return (
     <div className="border-b border-white/20">
-      <div className="flex items-center gap-9 text-[14px]">
+      <div className="flex items-center justify-start gap-[clamp(12px,3vw,36px)] text-[clamp(12px,2vw,14px)]">
         {tabs.map((t) => {
           const active = value === t;
 

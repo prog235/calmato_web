@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { Search, X } from "lucide-react";
+import { ChevronDown, Search, X } from "lucide-react";
+import styles from "@/styles/archiveTracks.module.css";
 import TrackRow from "@/components/TrackRow";
 import { supabase } from "@/lib/supabaseClient";
 import { getThumbnailUrl } from "@/lib/getUrl";
@@ -41,6 +42,8 @@ export default function TracksView({ categories, playlists }: Props) {
   const [tracksLoading, setTracksLoading] = useState(false);
   const [tracksError, setTracksError] = useState<string | null>(null);
   const [trackSearch, setTrackSearch] = useState("");
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const categoryToggleRef = useRef<HTMLButtonElement>(null);
 
   const tracksCacheRef = useRef<Map<string, Track[]>>(new Map());
 
@@ -87,6 +90,8 @@ export default function TracksView({ categories, playlists }: Props) {
 
   const selectCategory = (categoryId: number) => {
     setSelectedCategoryId(categoryId);
+    setCategoriesOpen(false);
+    if (categoriesOpen) categoryToggleRef.current?.focus();
     setSelection({ kind: "all", categoryId });
   };
 
@@ -231,18 +236,41 @@ export default function TracksView({ categories, playlists }: Props) {
       : tracks.length;
 
   return (
-    <div className={hasSingleCategory ? "block" : "flex"}>
+    <div className={styles.layout}>
       {/* Left category index */}
       {!hasSingleCategory && (
-        <div className="w-1/5 space-y-2">
+        <div className={styles.categories} onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            setCategoriesOpen(false);
+            categoryToggleRef.current?.focus();
+          }
+        }}>
+          <button
+            ref={categoryToggleRef}
+            type="button"
+            className={`${styles.categoryToggle} ${styles.categoryButton}`}
+            aria-expanded={categoriesOpen}
+            aria-controls="archive-category-options"
+            onClick={() => setCategoriesOpen((value) => !value)}
+          >
+            {activeCategory?.image_path && (
+              <Image src={getThumbnailUrl(activeCategory.image_path) ?? "/thumbnails/default.png"} alt="" fill sizes="100vw" className="object-cover brightness-50" />
+            )}
+            <span className={styles.toggleLabel}><span className="text-[11px] font-normal text-white/65">카테고리</span><span>{activeCategory?.name}</span></span>
+            <ChevronDown size={18} className={`${styles.chevron} ${categoriesOpen ? styles.rotated : ""}`} />
+          </button>
+          <div id="archive-category-options" className={`${styles.categoryOptions} ${categoriesOpen ? styles.optionsOpen : ""}`}>
+
           {sortedCategories.map((cat) => {
             const isActive = cat.id === selectedCategoryId;
 
             return (
-              <div
+              <button
+                type="button"
+                aria-pressed={isActive}
                 key={cat.id}
                 onClick={() => selectCategory(cat.id)}
-                className={`relative h-12 w-full cursor-pointer rounded-l-lg overflow-hidden transition group ${
+                className={`${styles.categoryButton} relative h-12 w-full cursor-pointer overflow-hidden transition group ${
                   isActive
                     ? "bg-[var(--hover-background)] z-30"
                     : "bg-[var(--foreground)]/50 opacity-90 z-10 hover:opacity-100 card-shadow"
@@ -254,8 +282,9 @@ export default function TracksView({ categories, playlists }: Props) {
                       getThumbnailUrl(cat.image_path) ??
                       "/thumbnails/default.png"
                     }
-                    alt={cat.name}
+                    alt=""
                     fill
+                    sizes="(min-width: 1024px) 16vw, 50vw"
                     className={`object-cover transition ${
                       isActive
                         ? "brightness-100"
@@ -264,21 +293,22 @@ export default function TracksView({ categories, playlists }: Props) {
                   />
                 )}
 
-                <div className="absolute inset-0 bg-black/15" />
+                <span className="absolute inset-0 bg-black/25" />
 
-                <div className="absolute inset-0 flex items-center px-4 font-semibold text-[13px] text-white">
+                <span className="absolute inset-0 flex items-center px-4 font-semibold text-[13px] text-white text-left leading-snug">
                   {cat.name}
-                </div>
-              </div>
+                </span>
+              </button>
             );
           })}
+          </div>
         </div>
       )}
 
       {/* Right content */}
       <div
-        className={`relative w-full border border-[var(--foreground)]/10 p-0.5 z-20 bg-[var(--background)] ${
-          hasSingleCategory ? "rounded-md" : "rounded-r-md"
+        className={`${styles.content} relative min-w-0 w-full border border-[var(--foreground)]/10 p-0.5 z-20 bg-[var(--background)] ${
+          hasSingleCategory ? "rounded-md" : "rounded-md lg:rounded-l-none"
         }`}
         style={{
           boxShadow:
@@ -286,11 +316,11 @@ export default function TracksView({ categories, playlists }: Props) {
         }}
       >
         <div className="rounded-sm border border-[var(--foreground)]/5">
-          <div className="p-7 space-y-5">
+          <div className="p-3 space-y-4 sm:p-5 lg:p-7 lg:space-y-5">
             {/* Header */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h2 className="text-[22px] font-semibold text-white">
+                <h2 className="text-xl sm:text-[22px] font-semibold text-white break-words">
                   {pageTitle}
                 </h2>
 
@@ -299,7 +329,7 @@ export default function TracksView({ categories, playlists }: Props) {
                 </p>
               </div>
 
-              <div className="relative w-full sm:w-64">
+              <div className="relative w-full sm:w-56 sm:shrink-0 lg:w-64">
                 <Search
                   size={16}
                   strokeWidth={1.8}
@@ -312,7 +342,7 @@ export default function TracksView({ categories, playlists }: Props) {
                   onChange={(e) => setTrackSearch(e.target.value)}
                   placeholder="곡 검색"
                   aria-label="곡 검색"
-                  className="h-9 w-full rounded-md border border-white/10 bg-white/[0.055] pl-9 pr-9 text-[13px] text-white outline-none transition placeholder:text-white/30 hover:border-white/20 focus:border-white/35 focus:bg-white/[0.075]"
+                  className="h-11 sm:h-9 w-full rounded-md border border-white/10 bg-white/[0.055] pl-9 pr-9 text-base sm:text-[13px] text-white outline-none transition placeholder:text-white/30 hover:border-white/20 focus:border-white/35 focus:bg-white/[0.075]"
                 />
                 {trackSearch && (
                   <button
@@ -341,7 +371,7 @@ export default function TracksView({ categories, playlists }: Props) {
                       categoryId: selectedCategoryId,
                     });
                   }}
-                  className={`transition ${
+                  className={`min-h-9 px-1 transition ${
                     selection?.kind === "all"
                       ? "text-white font-semibold"
                       : "text-white/45 hover:text-white/80"
@@ -365,7 +395,7 @@ export default function TracksView({ categories, playlists }: Props) {
                           playlistId: pl.id,
                         })
                       }
-                      className={`before:content-['·'] before:mr-3 transition ${
+                      className={`min-h-9 px-1 before:content-['·'] before:mr-3 transition ${
                         isActive
                           ? "text-white font-semibold"
                           : "text-white/45 hover:text-white/80"
@@ -379,7 +409,7 @@ export default function TracksView({ categories, playlists }: Props) {
             )}
 
             {/* Tracks */}
-            <div className="min-h-[420px] space-y-4 md:min-h-[560px]">
+            <div className="min-h-[280px] space-y-2.5 sm:space-y-4 md:min-h-[560px]">
               {tracksLoading && (
                 <div className="subtext">Loading tracks...</div>
               )}

@@ -127,7 +127,7 @@ export default function SignupPage() {
       </Head>
 
       <main className="min-h-screen overflow-hidden bg-[#0a0a0a]">
-        <section className="grid min-h-screen px-5 py-6 md:grid-cols-2 md:px-6 lg:gap-14">
+        <section className="grid min-h-screen page-gutter py-6 md:grid-cols-2 lg:gap-14">
           <div className="hidden min-h-[calc(100vh-3rem)] md:block">
             <div className="relative h-full overflow-hidden rounded-[20px] border border-white/8 bg-white/[0.025]">
               <video

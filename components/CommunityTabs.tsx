@@ -14,8 +14,8 @@ export default function CommunityTabs({ current }: CommunityTabsProps) {
   ];
 
   return (
-    <div className="border-b border-white/20">
-      <div className="flex items-center gap-8 text-sm">
+    <div className="overflow-x-auto border-b border-white/20">
+      <div className="flex min-w-max items-center gap-6 text-sm sm:gap-8">
         {tabs.map((tab) => {
           const active = tab.key === current;
 

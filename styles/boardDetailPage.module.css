@@ -912,7 +912,7 @@
 
 @media (max-width: 768px) {
   .page {
-    padding: 40px 16px 84px;
+    padding-block: 40px 84px;
   }
 
   .commentComposer {

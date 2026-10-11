@@ -1,6 +1,7 @@
 // components/TrackRow.tsx
 import { useMemo, useState, useEffect, useRef, useLayoutEffect } from "react";
 import { motion, useSpring, useTransform, useMotionValue } from "framer-motion";
+import styles from "@/styles/archiveTracks.module.css";
 import SimplePlayer from "./SimplePlayer";
 import { getThumbnailUrl } from "@/lib/getUrl";
 
@@ -22,6 +23,7 @@ interface Props {
 
 export default function TrackRow({ track }: Props) {
   const [open, setOpen] = useState(false);
+  const [playback, setPlayback] = useState({ playing: false, progress: 0 });
 
   // 1) 하나의 progress p(0→1)를 스프링으로 구동 (튀는 느낌 최소화)
   const p = useSpring(0, { stiffness: 120, damping: 30, mass: 0.9, restDelta: 0.001 });
@@ -32,8 +34,8 @@ export default function TrackRow({ track }: Props) {
   const bgOpacity = useTransform(p, (v) => v * 0.8);
 
   // 3) 제목 자리 유지를 위한 스페이서(가로 이동 최소화)
-  const spacerW  = useTransform(p, (v) => 64 - v * 56); // 64→8
-  const spacerMR = useTransform(p, (v) => 16 - v * 12);  // 16→4
+  const spacerW  = useTransform(p, (v) => `calc(var(--cover-size) * ${1 - v} + ${v * 8}px)`); // 64→8
+  const spacerMR = useTransform(p, (v) => `calc(var(--cover-gap) * ${1 - v} + ${v * 4}px)`);  // 16→4
 
   // 4) 상세 패널을 'height'로 펴고 접기 (배경과 완전 동기화)
   const contentRef = useRef<HTMLDivElement>(null);
@@ -63,8 +65,13 @@ export default function TrackRow({ track }: Props) {
   useLayoutEffect(() => {
     if (!open || !mounted || !contentRef.current) return;
 
-    naturalH.set(Math.ceil(contentRef.current.getBoundingClientRect().height));
+    const content = contentRef.current;
+    const measure = () => naturalH.set(Math.ceil(content.getBoundingClientRect().height));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(content);
     p.set(1);
+    return () => observer.disconnect();
   }, [
     open,
     mounted,
@@ -90,20 +97,20 @@ export default function TrackRow({ track }: Props) {
   );
 
   return (
-    <div className="relative rounded-lg bg-[var(--foreground)]/7 p-3 overflow-visible">
+    <div className={`${styles.trackRow} relative rounded-lg bg-[var(--foreground)]/7 p-2.5 sm:p-3 overflow-visible`}>
       {/* 헤더 */}
-      <div className="flex items-center justify-between relative z-10">
-        <div className="flex items-center min-w-0">
+      <div className={`${styles.trackHeader} relative z-10`}>
+        <div className="flex items-center min-w-0 flex-1">
           {/* 썸네일 스페이서: 배경 진행도와 동기화 */}
           <motion.div
-            className="h-16 rounded-md overflow-hidden"
+            className={styles.coverSpacer}
             style={{ width: spacerW, marginRight: spacerMR }}
           >
             {track.thumbnail_path && (
               <motion.img
                 src={getThumbnailUrl(track.thumbnail_path) ?? "default.png"}
                 alt="" aria-hidden="true"
-                className="h-16 w-16 rounded-md object-cover pointer-events-none"
+                className={styles.cover}
                 style={{ opacity: thumbOpacity, scale: thumbScale, y: thumbY }}
               />
             )}
@@ -111,18 +118,24 @@ export default function TrackRow({ track }: Props) {
 
 
           <div className="min-w-0 space-y-1 pl-1">
-            <h3 className="text-md font-semibold truncate">{track.title}</h3>
-            {track.subtitle && <p className="text-sm subtext truncate">{track.subtitle}</p>}
+            <h3 className="text-sm sm:text-base font-semibold truncate" title={track.title}>{track.title}</h3>
+            {track.subtitle && <p className="text-xs sm:text-sm subtext truncate" title={track.subtitle}>{track.subtitle}</p>}
           </div>
         </div>
 
-        <div className="rounded-full bg-[var(--foreground)]/10 px-5 py-3">
+        <div className={styles.playerPill}>
           <SimplePlayer
             track={track}
+            onPlaybackChange={setPlayback}
             detailsOpen={open}
+            detailsId={mounted ? panelId : undefined}
             onToggleDetails={() => setOpen((v) => !v)}
           />
         </div>
+      </div>
+
+      <div className={styles.playbackProgress} data-playing={playback.playing} aria-hidden="true">
+        <span style={{ transform: `scaleX(${playback.progress})` }} />
       </div>
 
       {/* 배경/베일/패널: mounted 동안만 렌더 */}
@@ -168,7 +181,7 @@ export default function TrackRow({ track }: Props) {
             }}
           >
             {/* 실제 콘텐츠: 이 높이를 기준으로 panelH가 계산됨 */}
-            <div ref={contentRef} className="rounded-xl border border-white/15 bg-[var(--background)]/30 backdrop-blur-md px-5 py-5 md:px-6 md:py-6">
+            <div ref={contentRef} className="rounded-xl border border-white/15 bg-[var(--background)]/30 backdrop-blur-md p-3.5 sm:p-5 md:p-6 break-words">
               <div className="grid gap-6 md:grid-cols-2">
                 {track.desc_kim && (
                   <div>

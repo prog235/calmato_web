@@ -149,9 +149,9 @@ export default function PostBackgroundPicker({
   }
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/72 px-4 py-5 text-white backdrop-blur-sm sm:px-6 lg:px-8">
-      <div className="flex h-[min(84vh,860px)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-white/12 bg-[#0a0a0a] shadow-[0_28px_100px_rgba(0,0,0,0.72)]">
-        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4 sm:px-6">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/72 px-3 py-3 text-white backdrop-blur-sm sm:px-6 sm:py-5 lg:px-8">
+      <div className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-white/12 bg-[#0a0a0a] shadow-[0_28px_100px_rgba(0,0,0,0.72)] sm:max-h-[calc(100vh-2.5rem)] lg:h-[min(84vh,860px)]">
+        <div className="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-3 sm:px-6 sm:py-4">
           <div>
             <div className="flex items-center gap-2 text-sm font-semibold text-white/88 mt-2">
               <Palette size={16} aria-hidden="true" />
@@ -171,8 +171,8 @@ export default function PostBackgroundPicker({
           </button>
         </div>
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_500px]">
-          <div className="min-h-0 space-y-8 overflow-y-auto border-b border-white/10 p-5 sm:p-6 lg:border-b-0 lg:border-r lg:border-white/10">
+        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_500px] lg:overflow-hidden">
+          <div className="space-y-7 border-b border-white/10 p-4 sm:space-y-8 sm:p-6 lg:min-h-0 lg:overflow-y-auto lg:border-b-0 lg:border-r lg:border-white/10">
             <section>
               <div className="mb-3 text-xs font-medium uppercase tracking-[0.16em] text-white/38">
                 Uploaded
@@ -210,7 +210,7 @@ export default function PostBackgroundPicker({
               <div className="mb-3 text-xs font-medium uppercase tracking-[0.16em] text-white/38">
                 Colors
               </div>
-              <div className="grid grid-cols-7 gap-2 sm:max-w-[560px]">
+              <div className="grid grid-cols-4 gap-2 sm:max-w-[560px] sm:grid-cols-7">
                 {POST_BACKGROUND_COLORS.map((color) => {
                   const next = { type: "color", value: color.value } as const;
                   return (
@@ -272,11 +272,11 @@ export default function PostBackgroundPicker({
             </button>
           </div>
 
-          <div className="flex min-h-0 flex-col justify-center overflow-y-auto bg-white/[0.012] p-5 sm:p-6">
+          <div className="flex flex-col bg-white/[0.012] p-4 sm:p-6 lg:min-h-0 lg:justify-center lg:overflow-y-auto">
             <div className="text-xs font-medium uppercase tracking-[0.16em] text-white/38">
               Preview
             </div>
-            <div className="relative mt-5 w-full overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-[0_24px_80px_rgba(0,0,0,0.46)]">
+            <div className="relative mt-4 w-full overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-[0_24px_80px_rgba(0,0,0,0.46)] sm:mt-5">
               {preview.imageUrl ? (
                 <div className="absolute inset-0">
                   <img src={preview.imageUrl} alt="" className="h-full w-full object-cover opacity-60" />
@@ -291,8 +291,8 @@ export default function PostBackgroundPicker({
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.08),transparent_55%)]" />
               )}
 
-              <div className="relative flex min-h-[220px] flex-col px-5 pt-5 pb-4">
-                <div className="mb-4 flex items-center justify-between gap-2 text-[13px] text-white/60">
+              <div className="relative flex min-h-[200px] flex-col px-4 pt-4 pb-4 sm:min-h-[220px] sm:px-5 sm:pt-5">
+                <div className="mb-4 flex items-center justify-between gap-2 text-[12px] text-white/60 sm:text-[13px]">
                   <span className="inline-flex h-6 min-w-0 items-center gap-3">
                     <ProfileAvatar
                       imagePath={profileImagePath}
@@ -348,7 +348,7 @@ export default function PostBackgroundPicker({
               />
             </div>
 
-            <div className="mt-5 flex justify-end gap-2">
+            <div className="mt-8 flex justify-end gap-2 sm:mt-10">
               <button
                 type="button"
                 onClick={onClose}

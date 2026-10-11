@@ -74,8 +74,8 @@ export default function AdminHomePage({ admin }: AdminHomePageProps) {
         <title>Admin | Calmato</title>
       </Head>
 
-      <main className="min-h-screen bg-[#0a0a0a] px-5 pb-20 pt-28 text-white md:px-10">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
+      <main className="min-h-screen bg-[#0a0a0a] page-gutter pb-20 pt-28 text-white">
+        <div className="flex w-full flex-col gap-8">
           <header className="border-b border-white/10 pb-7">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-white/55">
               <LockKeyhole size={14} strokeWidth={1.8} />

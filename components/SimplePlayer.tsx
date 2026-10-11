@@ -1,8 +1,7 @@
-// components/SimplePlayer.tsx
+import styles from "@/styles/archiveTracks.module.css";
 import type { CSSProperties } from "react";
-import { useEffect, useRef, useState } from "react";
-import { FaPlay, FaPause, FaVolumeUp, FaVolumeMute } from "react-icons/fa";
-import { motion } from "framer-motion";
+import { useEffect, useId, useRef, useState } from "react";
+import { ChevronDown, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import { getAudioUrl } from "@/lib/getUrl";
 
 type Track = {
@@ -14,181 +13,171 @@ type Track = {
   desc_kim: string;
   desc_lee: string;
   youtube_url: string;
-}
+};
 
 interface Props {
   track: Track;
-  // parent will control the expand panel
   onToggleDetails?: () => void;
   detailsOpen?: boolean;
-  className?: string; // keep your pill/button styling intact
-}
-
-function TriangleDown({ className = "" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} width="24" height="24" aria-hidden>
-      <path d="M4.5 8.5 12 16l7.5-7.5h-15z" fill="currentColor" />
-    </svg>
-  );
+  detailsId?: string;
+  onPlaybackChange?: (state: { playing: boolean; progress: number }) => void;
+  className?: string;
 }
 
 export default function SimplePlayer({
   track,
   onToggleDetails,
   detailsOpen = false,
+  detailsId,
+  onPlaybackChange,
   className = "",
 }: Props) {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const volumeTrackRef = useRef<HTMLDivElement>(null);
+  const volumeRef = useRef<HTMLDivElement>(null);
+  const volumeButtonRef = useRef<HTMLButtonElement>(null);
+  const sliderRef = useRef<HTMLInputElement>(null);
+  const volumeId = useId();
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
   const [volumeOpen, setVolumeOpen] = useState(false);
+  const [playError, setPlayError] = useState(false);
 
-  const togglePlay = () => {
+  const syncPlayback = () => {
     const audio = audioRef.current;
     if (!audio) return;
-    if (isPlaying) audio.pause();
-    else audio.play();
+    const playing = !audio.paused && !audio.ended;
+    setIsPlaying(playing);
+    onPlaybackChange?.({
+      playing,
+      progress: Number.isFinite(audio.duration) && audio.duration > 0
+        ? Math.min(1, Math.max(0, audio.currentTime / audio.duration))
+        : 0,
+    });
   };
 
-  const toggleVolumeSlider = () => {
-    setVolumeOpen((open) => !open);
-  };
-
-  const updateVolume = (value: number) => {
+  const togglePlay = async () => {
     const audio = audioRef.current;
-    if (audio) {
-      audio.volume = value;
-      audio.muted = false;
+    if (!audio) return;
+    setPlayError(false);
+    if (!audio.paused) audio.pause();
+    else {
+      try {
+        await audio.play();
+      } catch {
+        setPlayError(true);
+        syncPlayback();
+      }
     }
-    setVolume(value);
-  };
-
-  const updateVolumeFromPointer = (clientY: number) => {
-    const trackEl = volumeTrackRef.current;
-    if (!trackEl) return;
-
-    const rect = trackEl.getBoundingClientRect();
-    const nextVolume = (rect.bottom - clientY) / rect.height;
-    updateVolume(Math.min(1, Math.max(0, nextVolume)));
-  };
-
-  const nudgeVolume = (delta: number) => {
-    updateVolume(Math.min(1, Math.max(0, volume + delta)));
   };
 
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const onPlay = () => setIsPlaying(true);
-    const onPause = () => setIsPlaying(false);
-    const onEnded = () => setIsPlaying(false);
-    const onVolumeChange = () => setVolume(audio.muted ? 0 : audio.volume);
-    audio.addEventListener("play", onPlay);
-    audio.addEventListener("pause", onPause);
-    audio.addEventListener("ended", onEnded);
-    audio.addEventListener("volumechange", onVolumeChange);
-    return () => {
-      audio.removeEventListener("play", onPlay);
-      audio.removeEventListener("pause", onPause);
-      audio.removeEventListener("ended", onEnded);
-      audio.removeEventListener("volumechange", onVolumeChange);
+    if (!volumeOpen) return;
+    sliderRef.current?.focus({ preventScroll: true });
+    const dismiss = (event: PointerEvent) => {
+      if (event.target instanceof Node && !volumeRef.current?.contains(event.target)) {
+        setVolumeOpen(false);
+      }
     };
-  }, []);
+    document.addEventListener("pointerdown", dismiss);
+    return () => document.removeEventListener("pointerdown", dismiss);
+  }, [volumeOpen]);
 
   return (
-    
-    <div className={`flex items-center gap-8 pl-3 pr-2 py-3 ${className}`}>
-      {/* keep audio hidden inside the pill as before */}
-      <audio ref={audioRef} src={getAudioUrl(track.audio_path) ?? "/audio/default.mp3"} preload="metadata" />
+    <div className={`${styles.player} ${className}`}>
+      <audio
+        ref={audioRef}
+        src={getAudioUrl(track.audio_path) ?? "/audio/default.mp3"}
+        preload="metadata"
+        onPlay={syncPlayback}
+        onPause={syncPlayback}
+        onEnded={syncPlayback}
+        onTimeUpdate={syncPlayback}
+        onDurationChange={syncPlayback}
+        onEmptied={syncPlayback}
+        onVolumeChange={() => {
+          const audio = audioRef.current;
+          if (audio) setVolume(audio.muted ? 0 : audio.volume);
+        }}
+      />
 
-      <button onClick={togglePlay} aria-label={isPlaying ? "일시정지" : "재생"}>
-        {isPlaying ? <FaPause /> : <FaPlay />}
+      <button
+        type="button"
+        onClick={togglePlay}
+        aria-label={isPlaying ? "일시정지" : "재생"}
+        className={styles.playButton}
+        data-playing={isPlaying}
+      >
+        <span className={styles.playDisc}>
+          {isPlaying ? <Pause size={15} strokeWidth={1.8} /> : <Play size={15} strokeWidth={1.8} className={styles.playIcon} />}
+        </span>
       </button>
 
-      <div className="relative flex items-center">
+      <div
+        ref={volumeRef}
+        className={styles.volumeControl}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setVolumeOpen(false);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            setVolumeOpen(false);
+            volumeButtonRef.current?.focus();
+          }
+        }}
+      >
         <button
-          onClick={toggleVolumeSlider}
+          ref={volumeButtonRef}
+          type="button"
+          onClick={() => setVolumeOpen((open) => !open)}
           aria-expanded={volumeOpen}
+          aria-controls={volumeOpen ? volumeId : undefined}
           aria-label="음량 조절"
+          className={styles.secondaryButton}
         >
-          {volume === 0 ? <FaVolumeMute /> : <FaVolumeUp />}
+          {volume === 0 ? <VolumeX size={17} strokeWidth={1.6} /> : <Volume2 size={17} strokeWidth={1.6} />}
         </button>
-
         {volumeOpen && (
-          <div
-            className="absolute bottom-full left-1/2 z-30 mb-3 flex h-36 w-12 -translate-x-1/2 items-center justify-center rounded-[24px] border border-white/15 bg-zinc-800/90 px-3 py-6 shadow-[0_14px_36px_rgba(0,0,0,0.35)] backdrop-blur-md"
-            style={
-              {
-                "--track-volume": `${volume * 96}px`,
-                "--thumb-bottom": `${volume * 96 - 11}px`,
-              } as CSSProperties
-            }
-          >
-            <div
-              ref={volumeTrackRef}
-              role="slider"
-              tabIndex={0}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={Math.round(volume * 100)}
+          <div id={volumeId} className={styles.volumePopover}>
+            <span className={styles.volumeValue} aria-hidden="true">{Math.round(volume * 100)}</span>
+            <input
+              ref={sliderRef}
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={Math.round(volume * 100)}
               aria-label="음량"
-              className="relative h-24 w-7 cursor-pointer touch-none outline-none"
-              onPointerDown={(e) => {
-                e.currentTarget.setPointerCapture(e.pointerId);
-                updateVolumeFromPointer(e.clientY);
+              aria-valuetext={`${Math.round(volume * 100)}%`}
+              className={styles.volumeSlider}
+              style={{ "--volume": `${volume * 100}%` } as CSSProperties}
+              onChange={(event) => {
+                const value = Number(event.target.value) / 100;
+                const audio = audioRef.current;
+                if (audio) {
+                  audio.volume = value;
+                  audio.muted = false;
+                }
+                setVolume(value);
               }}
-              onPointerMove={(e) => {
-                if (e.buttons !== 1) return;
-                updateVolumeFromPointer(e.clientY);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "ArrowUp" || e.key === "ArrowRight") {
-                  e.preventDefault();
-                  nudgeVolume(0.05);
-                }
-                if (e.key === "ArrowDown" || e.key === "ArrowLeft") {
-                  e.preventDefault();
-                  nudgeVolume(-0.05);
-                }
-                if (e.key === "Home") {
-                  e.preventDefault();
-                  updateVolume(0);
-                }
-                if (e.key === "End") {
-                  e.preventDefault();
-                  updateVolume(1);
-                }
-              }}
-            >
-              <span
-                aria-hidden="true"
-                className="absolute left-1/2 top-0 h-full w-[6px] -translate-x-1/2 rounded-full bg-black/55 shadow-[inset_0_1px_2px_rgba(255,255,255,0.05),inset_0_-1px_2px_rgba(0,0,0,0.45)]"
-              />
-              <span
-                aria-hidden="true"
-                className="absolute bottom-0 left-1/2 h-[var(--track-volume)] max-h-24 w-[6px] -translate-x-1/2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.14)]"
-              />
-              <span
-                aria-hidden="true"
-                className="absolute bottom-[var(--thumb-bottom)] left-1/2 h-[22px] w-3 -translate-x-1/2 rounded-[2px] border border-white/55 bg-[linear-gradient(180deg,rgba(235,235,235,0.98),rgba(203,203,203,0.98))] shadow-[0_1px_2px_rgba(0,0,0,0.28),0_6px_14px_rgba(0,0,0,0.38),0_0_0_1px_rgba(255,255,255,0.08)]"
-              />
-            </div>
+            />
           </div>
         )}
       </div>
 
-      {/* ellipsis -> triangle; only rotates & calls parent */}
-      <motion.button
-        onClick={onToggleDetails}
-        aria-expanded={detailsOpen}
-        aria-label={detailsOpen ? "설명 닫기" : "설명 열기"}
-        className="rounded-md hover:bg-black/10"
-        animate={{ rotate: detailsOpen ? 180 : 0 }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
-      >
-        <TriangleDown />
-      </motion.button>
+      {onToggleDetails && (
+        <button
+          type="button"
+          aria-controls={detailsId}
+          onClick={onToggleDetails}
+          aria-expanded={detailsOpen}
+          aria-label={detailsOpen ? "설명 닫기" : "설명 열기"}
+          className={styles.secondaryButton}
+        >
+          <ChevronDown size={17} strokeWidth={1.6} className={`${styles.detailsChevron} ${detailsOpen ? styles.rotated : ""}`} />
+        </button>
+      )}
+      {playError && <span role="status" className={styles.playerError}>재생할 수 없습니다. 다시 시도해 주세요.</span>}
     </div>
   );
 }

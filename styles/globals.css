@@ -1,5 +1,26 @@
 @import "tailwindcss";
 
+/* Shared outer gutter for navigation and every page; card/form padding stays local. */
+:root {
+  --page-gutter: 16px;
+}
+
+@media (min-width: 640px) {
+  :root { --page-gutter: 32px; }
+}
+
+@media (min-width: 768px) {
+  :root { --page-gutter: 48px; }
+}
+
+@media (min-width: 1024px) {
+  :root { --page-gutter: 64px; }
+}
+
+.page-gutter {
+  padding-inline: var(--page-gutter);
+}
+
 /*
 :root {
   --background: #ffffff;
@@ -85,6 +106,14 @@ body {
 .horizontal-scroll-lock {
   overscroll-behavior: contain;
   touch-action: pan-x;
+}
+
+.track-list-scrollbar {
+  scrollbar-width: none;
+}
+
+.track-list-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 html:not(.dark) .card-shadow {

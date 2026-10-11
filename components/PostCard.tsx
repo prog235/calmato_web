@@ -159,9 +159,9 @@ export default function PostCard(props: PostCardProps) {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.08),transparent_55%)]" />
         )}
 
-        <div className="relative flex min-h-[220px] flex-col px-5 pt-5 pb-4">
+        <div className="relative flex min-h-[210px] flex-col px-4 pt-4 pb-4 sm:min-h-[220px] sm:px-5 sm:pt-5">
           {/* Top meta */}
-          <div className="mb-4 flex items-center justify-between gap-2 text-[13px] text-white/60">
+          <div className="mb-4 flex items-start justify-between gap-2 text-[12px] text-white/60 sm:items-center sm:text-[13px]">
             <span className="inline-flex h-6 min-w-0 items-center gap-3">
               <ProfileAvatar
                 imagePath={profileImagePath}
@@ -177,7 +177,7 @@ export default function PostCard(props: PostCardProps) {
               )}
             </span>
 
-            <span className="flex h-6 shrink-0 items-center leading-none">
+            <span className="flex h-6 shrink-0 items-center whitespace-nowrap leading-none">
               {formatKoreanDateTime(createdAt)}
             </span>
           </div>

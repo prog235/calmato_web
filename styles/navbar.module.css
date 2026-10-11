@@ -1,0 +1,62 @@
+.mobileToggle {
+  display: inline-flex;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.3s ease-in-out, visibility 0s linear 0.45s;
+}
+
+.desktopNavigation {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.3s ease-in-out, visibility 0s linear;
+}
+
+.header[data-compact="true"] .desktopNavigation {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition-delay: 0s, 0s;
+}
+
+.header[data-compact="true"] .mobileToggle {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition-delay: 0s, 0s;
+}
+
+/* Enforce the mobile layout even before resize/hydration effects have run. */
+@media (max-width: 767px) {
+  .header {
+    min-height: 120px;
+    padding-block: 20px;
+    justify-content: center;
+  }
+
+  .desktopNavigation {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition-delay: 0s, 0s;
+  }
+
+  .mobileToggle {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition-delay: 0s, 0s;
+  }
+
+  .logo {
+    left: 50%;
+    translate: -50% -50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header .desktopNavigation,
+  .header .mobileToggle {
+    transition: none;
+  }
+}

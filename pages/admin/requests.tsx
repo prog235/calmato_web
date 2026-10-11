@@ -226,8 +226,8 @@ export default function AdminRequestsPage({ admin }: AdminRequestsPageProps) {
         <title>Request Admin | Calmato</title>
       </Head>
 
-      <main className="min-h-screen bg-[#0a0a0a] px-5 pb-20 pt-28 text-white md:px-10">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-7">
+      <main className="min-h-screen bg-[#0a0a0a] page-gutter pb-20 pt-28 text-white">
+        <div className="flex w-full flex-col gap-7">
           <header className="border-b border-white/10 pb-6">
             <div className="mb-4 flex flex-wrap items-center gap-3">
               <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-white/55">

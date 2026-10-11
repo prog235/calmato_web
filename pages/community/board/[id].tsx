@@ -832,7 +832,7 @@ export default function BoardDetailPage({
       </Head>
 
       <main className={styles.page}>
-        <div className={`${styles.container} px-8 sm:px-12 md:px-16`}>
+        <div className={`${styles.container} page-gutter`}>
           <article className={styles.article}>
             <header className={`${styles.header} border-b border-white/20`}>
               <div className={styles.titleRow}>

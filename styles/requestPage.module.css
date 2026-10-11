@@ -84,6 +84,7 @@
 
 .searchForm {
   position: relative;
+  min-width: 0;
   width: 100%;
 }
 
@@ -517,13 +518,14 @@
 
   .listControls {
     width: 100%;
-    justify-content: start;
+    grid-template-columns: 122px minmax(0, 1fr);
   }
 }
 
 @media (max-width: 720px) {
   .listControls {
-    grid-template-columns: 1fr;
+    grid-template-columns: 108px minmax(0, 1fr);
+    gap: 12px;
   }
 
   .sortSelectWrap,
