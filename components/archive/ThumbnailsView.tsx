@@ -453,7 +453,7 @@ export default function ThumbnailsView() {
           </div>
         ) : null}
 
-        <HorizontalCarousel className="pb-1" speed={1.6}>
+        <HorizontalCarousel className="pb-1">
           {visibleWallpapers.map((wallpaper) => {
             const path = getWallpaperPath(wallpaper);
             if (!path) return null;

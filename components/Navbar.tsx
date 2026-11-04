@@ -560,20 +560,11 @@ export default function Navbar() {
             className="relative block h-[80px] w-[160px] transition-opacity duration-[300ms] hover:opacity-80"
           >
             <Image
-              src="/calmato_b_logo@4x.png"
-              alt="Calmato Logo Light"
-              fill
-              sizes="160px"
-              className="object-contain logo-light"
-              priority
-            />
-    
-            <Image
               src="/calmato_w_logo@4x.png"
-              alt="Calmato Logo Dark"
+              alt="Calmato Logo"
               fill
               sizes="160px"
-              className="object-contain logo-dark"
+              className="object-contain"
               priority
             />
           </Link>
